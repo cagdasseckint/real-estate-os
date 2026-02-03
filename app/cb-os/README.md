@@ -33,6 +33,7 @@ appsscript.json    → Proje ayarları (manifest)
 17_Orchestrator.gs → ORCH_15MIN
 18_Automations.gs  → Lead skorlama ve otomasyonlar
 19_CrmPipeline.gs  → CRM + Pipeline (Contacts/Opportunities)
+20_WorkflowEngine.gs → Workflow engine (WorkflowRules/WorkflowRuns)
 ```
 
 ### 3. appsscript.json Güncelleme
@@ -155,5 +156,6 @@ ORCH_15MIN();
     ├── 16_AuditTools.gs          # Audit araçları
     ├── 17_Orchestrator.gs        # Orchestrator
     ├── 18_Automations.gs         # Lead skorlama ve otomasyonlar
-    └── 19_CrmPipeline.gs         # CRM + Pipeline (Contacts/Opportunities)
+    ├── 19_CrmPipeline.gs         # CRM + Pipeline (Contacts/Opportunities)
+    └── 20_WorkflowEngine.gs      # Workflow engine (WorkflowRules/WorkflowRuns)
 ```
