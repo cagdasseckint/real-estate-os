@@ -71,7 +71,18 @@ function bootstrapSheets_() {
     SHEETS.DOCS,
     SHEETS.DEDUP_KEYS,
     SHEETS.CONFIG,
-    SHEETS.STAGE_AUTOMATIONS
+    SHEETS.STAGE_AUTOMATIONS,
+    SHEETS.TASK_TEMPLATES,
+    SHEETS.LEAD_SCORES,
+    SHEETS.LEAD_SIGNALS,
+    SHEETS.EMAIL_DRAFTS,
+    SHEETS.FOLLOWUP_SEQUENCES,
+    SHEETS.DOC_PACKAGES,
+    SHEETS.DOC_TEMPLATES,
+    SHEETS.OPS_DASHBOARD,
+    SHEETS.DRIVE_SHARE_AUDIT,
+    SHEETS.ACCESS_INVENTORY,
+    SHEETS.SECURITY_SOP
   ];
   
   for (const sheetName of requiredSheets) {
@@ -107,6 +118,18 @@ function bootstrapSheets_() {
   // Seed default CONFIG values if CONFIG was created
   if (report.created.includes(SHEETS.CONFIG)) {
     seedDefaultConfig_();
+  }
+  
+  if (report.created.includes(SHEETS.TASK_TEMPLATES)) {
+    seedDefaultTaskTemplates_();
+  }
+  
+  if (report.created.includes(SHEETS.FOLLOWUP_SEQUENCES)) {
+    seedDefaultFollowupSequences_();
+  }
+  
+  if (report.created.includes(SHEETS.SECURITY_SOP)) {
+    seedSecuritySop_();
   }
   
   Logger.log('BOOTSTRAP | Report: ' + JSON.stringify(report));
@@ -200,6 +223,18 @@ function seedDefaultConfig_() {
     ['GMAIL_SCAN_LABELS', DEFAULTS.GMAIL_SCAN_LABELS, 'Gmail labels to scan (comma-separated)'],
     ['STUCK_STAGE_DAYS_THRESHOLD', DEFAULTS.STUCK_STAGE_DAYS_THRESHOLD, 'Days before deal is stuck'],
     ['HOT_RESPONSE_MINUTES_THRESHOLD', DEFAULTS.HOT_RESPONSE_MINUTES_THRESHOLD, 'Minutes threshold for hot response'],
+    ['SLA_ALERT_RECIPIENTS', DEFAULTS.SLA_ALERT_RECIPIENTS, 'Comma-separated SLA alert recipients'],
+    ['LEAD_SCORE_TOP_N', DEFAULTS.LEAD_SCORE_TOP_N, 'Top N leads for follow-up tasks'],
+    ['LEAD_SCORE_MIN_THRESHOLD', DEFAULTS.LEAD_SCORE_MIN_THRESHOLD, 'Minimum score for follow-up list'],
+    ['FOLLOWUP_SEQUENCE_ENABLED', DEFAULTS.FOLLOWUP_SEQUENCE_ENABLED, 'Enable follow-up sequences'],
+    ['EMAIL_DRAFTS_ENABLED', DEFAULTS.EMAIL_DRAFTS_ENABLED, 'Enable Gmail draft queue'],
+    ['DOC_PACKAGES_ENABLED', DEFAULTS.DOC_PACKAGES_ENABLED, 'Enable docs packages on deal creation'],
+    ['DOC_TEMPLATE_OUTPUT_FOLDER_ID', DEFAULTS.DOC_TEMPLATE_OUTPUT_FOLDER_ID, 'Default folder for generated docs'],
+    ['WEEKLY_KPI_RECIPIENTS', DEFAULTS.WEEKLY_KPI_RECIPIENTS, 'Comma-separated KPI email recipients'],
+    ['WEEKLY_KPI_ENABLED', DEFAULTS.WEEKLY_KPI_ENABLED, 'Enable weekly KPI report'],
+    ['DRIVE_SHARE_AUDIT_ENABLED', DEFAULTS.DRIVE_SHARE_AUDIT_ENABLED, 'Enable drive share audit reporting'],
+    ['WINBACK_ENABLED', DEFAULTS.WINBACK_ENABLED, 'Enable win-back sequences for lost deals'],
+    ['CLOSE_CHECKLIST_ENABLED', DEFAULTS.CLOSE_CHECKLIST_ENABLED, 'Enable close checklist tasks'],
     ['DLQ_MAX_RETRY', DEFAULTS.DLQ_MAX_RETRY, 'Maximum DLQ retry attempts'],
     ['SMOKE_CHECKED_BY', DEFAULTS.SMOKE_CHECKED_BY, 'Default smoke test checked_by']
   ];
@@ -210,6 +245,59 @@ function seedDefaultConfig_() {
   }
   
   Logger.log('CONFIG | Seeded default values');
+}
+
+/**
+ * Seed default task templates
+ */
+function seedDefaultTaskTemplates_() {
+  const sheet = sheet_(SHEETS.TASK_TEMPLATES, false);
+  if (!sheet) return;
+  
+  const templates = [
+    ['first_touch', 'first_touch', 'DEAL', 'İlk temas yap', 'Lead ile ilk iletişimi kur', 'high', 1, '', 1, 'task', ''],
+    ['followup_48h', 'followup_48h', 'DEAL', '48 saat takip', '48 saat içinde takip iletişimi yap', 'medium', '', 48, 2, 'task', ''],
+    ['close_checklist', 'close_checklist', 'DEAL', 'Closing checklist', 'Kapanış için gerekli tüm maddeleri tamamla', 'high', 1, '', 1, 'task', '']
+  ];
+  
+  sheet.getRange(2, 1, templates.length, templates[0].length).setValues(templates);
+}
+
+/**
+ * Seed default follow-up sequence definitions
+ */
+function seedDefaultFollowupSequences_() {
+  const sheet = sheet_(SHEETS.FOLLOWUP_SEQUENCES, false);
+  if (!sheet) return;
+  
+  const steps = JSON.stringify([
+    { offset_days: 2, action: 'task', template: 'followup_48h' },
+    { offset_days: 7, action: 'email', subject: 'Takip', body: 'Merhaba, tekrar iletişime geçiyorum.' },
+    { offset_days: 14, action: 'email', subject: 'Takip - 2', body: 'Merhaba, tekrar dönüş rica ederim.' }
+  ]);
+  
+  const rows = [
+    ['followup_default', 'Default Follow-up', '*', '*', steps, true]
+  ];
+  
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+/**
+ * Seed security SOP checklist
+ */
+function seedSecuritySop_() {
+  const sheet = sheet_(SHEETS.SECURITY_SOP, false);
+  if (!sheet) return;
+  
+  const rows = [
+    ['SOP-001', 'Passwords', 'Tek hesap/tek cihaz kuralı uygulanıyor', 'pending', ''],
+    ['SOP-002', 'Passwords', 'Paylaşılan parola yok', 'pending', ''],
+    ['SOP-003', 'Access', 'Tüm erişimler envantere işlendi', 'pending', ''],
+    ['SOP-004', 'Access', 'Ayrılan kullanıcı erişimleri kapatıldı', 'pending', '']
+  ];
+  
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
 }
 
 /**

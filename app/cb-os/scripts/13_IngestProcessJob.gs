@@ -139,6 +139,9 @@ function routeIngestItem_(item, payload) {
       case INGEST_TYPES.NEW_LEAD:
         return handleNewLead_(item, payload);
         
+      case INGEST_TYPES.FORM_LEAD:
+        return handleNewLead_(item, payload);
+        
       case INGEST_TYPES.CONTACT_UPDATE:
         return handleContactUpdate_(item, payload);
         
@@ -228,6 +231,12 @@ function handleNewLead_(item, payload) {
     entity_id: deal.deal_id
   });
   
+  if (cfg_('FOLLOWUP_SEQUENCE_ENABLED', DEFAULTS.FOLLOWUP_SEQUENCE_ENABLED)) {
+    scheduleFollowupSequence_(deal, contact);
+  }
+  
+  recordLeadSignal_(deal, contact, 'FORM_LEAD', item.source, 30, 'new_lead');
+  
   Logger.log('NEW_LEAD | Created contact=' + contact.contact_id + ', deal=' + deal.deal_id);
   return { success: true, contact_id: contact.contact_id, deal_id: deal.deal_id };
 }
@@ -297,7 +306,11 @@ function handleDealUpdate_(item, payload) {
   const updates = {};
   const allowedFields = ['deal_value', 'currency', 'expected_close_date', 'assigned_to',
                          'property_type', 'property_address', 'listing_price', 
-                         'commission_rate', 'notes', 'docs_required', 'parcel_present'];
+                         'commission_rate', 'notes', 'docs_required', 'parcel_present',
+                         'lead_source', 'intent', 'budget', 'region', 'timing',
+                         'utm_source', 'utm_medium', 'utm_campaign', 'utm_term',
+                         'utm_content', 'gclid', 'lost_reason', 'attribution_campaign',
+                         'doc_package_url'];
   
   for (const field of allowedFields) {
     if (payload[field] !== undefined) {

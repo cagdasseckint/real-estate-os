@@ -157,41 +157,7 @@ const TasksRepo = {
    * @returns {Object} Created task
    */
   createFromTemplate: function(templateName, context) {
-    // Task templates for common scenarios
-    const templates = {
-      'first_touch': {
-        title: 'İlk temas yap',
-        description: 'Lead ile ilk iletişimi kur',
-        priority: 'high'
-      },
-      'qualification': {
-        title: 'Qualification soruları',
-        description: 'Lead kalifikasyon sorularını tamamla',
-        priority: 'high'
-      },
-      'schedule_appointment': {
-        title: 'Randevu ayarla',
-        description: 'Müşteri ile randevu planla',
-        priority: 'medium'
-      },
-      'followup_48h': {
-        title: '48 saat takip',
-        description: '48 saat içinde takip iletişimi yap',
-        priority: 'medium'
-      },
-      'send_contract': {
-        title: 'Sözleşme gönder',
-        description: 'Sözleşme taslağını hazırla ve gönder',
-        priority: 'high'
-      },
-      'photo_shoot': {
-        title: 'Fotoğraf çekimi',
-        description: 'Emlak fotoğraflarını çek veya çektir',
-        priority: 'medium'
-      }
-    };
-    
-    const template = templates[templateName];
+    const template = loadTaskTemplate_(templateName);
     if (!template) {
       Logger.log('TASKS | Unknown template: ' + templateName);
       return null;
@@ -199,7 +165,11 @@ const TasksRepo = {
     
     // Calculate due date (default: 1 day for high, 3 days for medium/low)
     const dueDate = new Date();
-    if (template.priority === 'high') {
+    if (template.due_in_hours) {
+      dueDate.setHours(dueDate.getHours() + Number(template.due_in_hours));
+    } else if (template.due_in_days) {
+      dueDate.setDate(dueDate.getDate() + Number(template.due_in_days));
+    } else if (template.priority === 'high') {
       dueDate.setDate(dueDate.getDate() + 1);
     } else {
       dueDate.setDate(dueDate.getDate() + 3);
@@ -214,3 +184,66 @@ const TasksRepo = {
     });
   }
 };
+
+/**
+ * Load task template from sheet or fallback defaults
+ * @param {string} templateName - Template name or ID
+ * @returns {Object|null} Template data
+ */
+function loadTaskTemplate_(templateName) {
+  const templates = {
+    'first_touch': {
+      title: 'İlk temas yap',
+      description: 'Lead ile ilk iletişimi kur',
+      priority: 'high'
+    },
+    'qualification': {
+      title: 'Qualification soruları',
+      description: 'Lead kalifikasyon sorularını tamamla',
+      priority: 'high'
+    },
+    'schedule_appointment': {
+      title: 'Randevu ayarla',
+      description: 'Müşteri ile randevu planla',
+      priority: 'medium'
+    },
+    'followup_48h': {
+      title: '48 saat takip',
+      description: '48 saat içinde takip iletişimi yap',
+      priority: 'medium',
+      due_in_hours: 48
+    },
+    'send_contract': {
+      title: 'Sözleşme gönder',
+      description: 'Sözleşme taslağını hazırla ve gönder',
+      priority: 'high'
+    },
+    'photo_shoot': {
+      title: 'Fotoğraf çekimi',
+      description: 'Emlak fotoğraflarını çek veya çektir',
+      priority: 'medium'
+    },
+    'close_checklist': {
+      title: 'Closing checklist',
+      description: 'Kapanış için gerekli tüm maddeleri tamamla',
+      priority: 'high'
+    }
+  };
+  
+  const sheet = sheet_(SHEETS.TASK_TEMPLATES, false);
+  if (sheet) {
+    const data = getSheetData_(SHEETS.TASK_TEMPLATES);
+    const match = data.find(row => row.template_id === templateName || row.name === templateName);
+    if (match) {
+      return {
+        title: match.title,
+        description: match.description,
+        priority: match.priority || 'medium',
+        due_in_days: match.due_in_days,
+        due_in_hours: match.due_in_hours
+      };
+    }
+  }
+  
+  return templates[templateName] || null;
+}

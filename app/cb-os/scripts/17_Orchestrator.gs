@@ -151,14 +151,11 @@ function gmail_scan_job(ctx) {
     
     for (const label of labels) {
       try {
-        // In V1, we log what we would scan
-        // Actual Gmail API integration would go here
-        Logger.log('GMAIL_SCAN | Would scan label: ' + label.trim());
-        result.scanned++;
-        
-        // For full implementation:
-        // const threads = GmailApp.search('label:' + label + ' after:' + cursorBefore);
-        // for (const thread of threads) { ... }
+        const labelName = label.trim();
+        Logger.log('GMAIL_SCAN | Scanning label: ' + labelName);
+        const signalResult = processGmailSignals_(labelName, cursorBefore);
+        result.scanned += signalResult.scanned;
+        result.leads_found += signalResult.signals;
         
       } catch (e) {
         Logger.log('GMAIL_SCAN | Error scanning label ' + label + ': ' + e.message);
@@ -195,7 +192,9 @@ function guardrails_job(ctx) {
     stuck_deals: 0,
     overdue_tasks: 0,
     sla_violations: 0,
-    alerts_created: 0
+    alerts_created: 0,
+    lead_scores: 0,
+    draft_emails: 0
   };
   
   try {
@@ -245,13 +244,61 @@ function guardrails_job(ctx) {
       }
     }
     
+    // Stage-level SLA checks
+    for (const deal of DealsRepo.getActive()) {
+      const slaDays = getStageSlaDays_(deal.deal_type, deal.stage);
+      if (!slaDays || !deal.last_stage_change_at) continue;
+      
+      const cutoff = new Date(deal.last_stage_change_at);
+      cutoff.setDate(cutoff.getDate() + Number(slaDays));
+      if (new Date() > cutoff) {
+        result.sla_violations++;
+        TasksRepo.create({
+          entity_type: 'DEAL',
+          entity_id: deal.deal_id,
+          title: 'SLA Breach: ' + deal.stage,
+          description: 'Stage SLA ' + slaDays + ' gün aşıldı.',
+          priority: 'high',
+          status: 'pending'
+        });
+        result.alerts_created++;
+      }
+    }
+    
+    // Lead scoring + top follow-ups
+    const scores = computeLeadScores_();
+    result.lead_scores = scores.length;
+    createTopFollowupTasks_(scores);
+    
+    // Email draft queue
+    const draftResult = processEmailDraftQueue_();
+    result.draft_emails = draftResult.drafted;
+    
+    // Ops dashboard snapshot
+    updateOpsDashboard_();
+    
+    // Drive share audit
+    runDriveShareAudit_();
+    
+    // SLA/stuck summary email
+    const recipients = cfg_('SLA_ALERT_RECIPIENTS', DEFAULTS.SLA_ALERT_RECIPIENTS);
+    if (recipients && (result.sla_violations > 0 || result.stuck_deals > 0)) {
+      const subject = 'CB-OS SLA & Stuck Deal Uyarısı';
+      const body = [
+        'SLA ihlalleri: ' + result.sla_violations,
+        'Stuck deal sayısı: ' + result.stuck_deals,
+        'Overdue task sayısı: ' + result.overdue_tasks
+      ].join('\n');
+      GmailApp.sendEmail(recipients, subject, body);
+    }
+    
   } catch (e) {
     Logger.log('GUARDRAILS | Job error: ' + e.message);
   }
   
   logJobRun_(ctx, jobName, '', '', '', 
              'Stuck=' + result.stuck_deals + ', Overdue=' + result.overdue_tasks + 
-             ', SLA=' + result.sla_violations);
+             ', SLA=' + result.sla_violations + ', LeadScores=' + result.lead_scores);
   
   Logger.log('GUARDRAILS | Complete: ' + JSON.stringify(result));
   return result;
