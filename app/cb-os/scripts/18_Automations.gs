@@ -36,6 +36,7 @@ function recordLeadSignal_(deal, contact, signalType, source, weight, signalValu
 function computeLeadScores_() {
   const signals = getSheetData_(SHEETS.LEAD_SIGNALS);
   const deals = DealsRepo.getActive();
+  const existingScores = getSheetData_(SHEETS.LEAD_SCORES);
   const scoreMap = {};
   
   for (const deal of deals) {
@@ -65,14 +66,21 @@ function computeLeadScores_() {
   
   const results = Object.values(scoreMap);
   for (const entry of results) {
-    appendRow_(SHEETS.LEAD_SCORES, {
+    const existing = existingScores.find(row => row.lead_id === entry.lead_id);
+    const updates = {
       lead_id: entry.lead_id,
       contact_id: entry.contact_id,
       deal_id: entry.deal_id,
       score: entry.score,
       score_breakdown: entry.breakdown.join('|'),
       updated_at: nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE))
-    });
+    };
+    
+    if (existing) {
+      updateRow_(SHEETS.LEAD_SCORES, existing._rowIndex, updates);
+    } else {
+      appendRow_(SHEETS.LEAD_SCORES, updates);
+    }
   }
   
   return results;
@@ -517,7 +525,7 @@ function runDriveShareAudit_() {
  * @returns {Object} Result counts
  */
 function processGmailSignals_(label, sinceIso) {
-  const result = { scanned: 0, signals: 0 };
+  const result = { scanned: 0, signals: 0, enqueued: 0 };
   const queryDate = sinceIso ? new Date(sinceIso) : null;
   const query = queryDate
     ? 'label:' + label + ' after:' + Math.floor(queryDate.getTime() / 1000)
@@ -532,16 +540,24 @@ function processGmailSignals_(label, sinceIso) {
     const from = latest.getFrom();
     const emailMatch = String(from).match(/<([^>]+)>/);
     const email = emailMatch ? emailMatch[1] : from;
-    const contact = ContactsRepo.findByEmail(email);
-    if (!contact) continue;
-    
-    const deals = DealsRepo.findByContactId(contact.contact_id);
-    const deal = deals.length > 0 ? deals[0] : null;
-    if (!deal) continue;
-    
     const weight = subject.toLowerCase().includes('acil') ? 20 : 10;
-    recordLeadSignal_(deal, contact, 'GMAIL_LABEL:' + label, 'gmail', weight, subject);
-    result.signals++;
+    const messageId = latest.getId();
+    
+    QueueRepo.enqueue({
+      ingest_type: INGEST_TYPES.GMAIL_SIGNAL,
+      payload: {
+        email: email,
+        subject: subject,
+        label: label,
+        signal_type: 'GMAIL_LABEL:' + label,
+        weight: weight
+      },
+      source: 'gmail',
+      source_ref_id: thread.getId(),
+      idempotency_key: 'gmail_signal:' + thread.getId() + ':' + messageId + ':' + label
+    });
+    
+    result.enqueued++;
   }
   
   return result;

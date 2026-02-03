@@ -191,6 +191,11 @@ const CANONICAL_HEADERS = {
 const INGEST_TYPES = {
   NEW_LEAD: 'new_lead',
   FORM_LEAD: 'form_lead',
+  GMAIL_SIGNAL: 'gmail_signal',
+  EMAIL_DRAFT_REQUEST: 'email_draft_request',
+  DOC_PACKAGE_CREATE: 'doc_package_create',
+  DOC_GENERATE_REQUEST: 'doc_generate_request',
+  STAGE_TRANSITION: 'stage_transition',
   CONTACT_UPDATE: 'contact_update',
   DEAL_UPDATE: 'deal_update',
   TASK_CREATE: 'task_create',

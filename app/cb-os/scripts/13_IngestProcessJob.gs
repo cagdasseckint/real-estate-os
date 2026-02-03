@@ -142,6 +142,9 @@ function routeIngestItem_(item, payload) {
       case INGEST_TYPES.FORM_LEAD:
         return handleNewLead_(item, payload);
         
+      case INGEST_TYPES.GMAIL_SIGNAL:
+        return handleGmailSignal_(item, payload);
+        
       case INGEST_TYPES.CONTACT_UPDATE:
         return handleContactUpdate_(item, payload);
         
@@ -398,6 +401,56 @@ function handleEventLog_(item, payload) {
     payload: payload.data || {},
     source: item.source,
     source_ref_id: item.source_ref_id,
+    idempotency_key: item.idempotency_key
+  });
+  
+  return { success: true };
+}
+
+/**
+ * Handle Gmail signal - link email to contact/deal and record lead signal
+ */
+function handleGmailSignal_(item, payload) {
+  const email = normalizeEmail_(payload.email || payload.from || '');
+  if (!email) {
+    return { success: false, error: 'Missing email in Gmail signal' };
+  }
+  
+  const contact = ContactsRepo.findByEmail(email);
+  if (!contact) {
+    EventsRepo.append({
+      entity_type: 'EMAIL',
+      entity_id: email,
+      event_type: EventsRepo.EVENT_TYPES.EMAIL_RECEIVED,
+      payload: { subject: payload.subject || '', label: payload.label || '' },
+      source: item.source || 'gmail',
+      idempotency_key: item.idempotency_key
+    });
+    return { success: true, message: 'Contact not found for email: ' + email };
+  }
+  
+  const deals = DealsRepo.findByContactId(contact.contact_id);
+  const deal = deals.length > 0 ? deals[0] : null;
+  if (!deal) {
+    EventsRepo.append({
+      entity_type: 'CONTACT',
+      entity_id: contact.contact_id,
+      event_type: EventsRepo.EVENT_TYPES.EMAIL_RECEIVED,
+      payload: { subject: payload.subject || '', label: payload.label || '' },
+      source: item.source || 'gmail',
+      idempotency_key: item.idempotency_key
+    });
+    return { success: true, message: 'Deal not found for contact: ' + contact.contact_id };
+  }
+  
+  recordLeadSignal_(deal, contact, payload.signal_type || 'GMAIL_SIGNAL', 'gmail', payload.weight || 10, payload.subject || '');
+  
+  EventsRepo.append({
+    entity_type: 'CONTACT',
+    entity_id: contact.contact_id,
+    event_type: EventsRepo.EVENT_TYPES.EMAIL_RECEIVED,
+    payload: { subject: payload.subject || '', label: payload.label || '' },
+    source: item.source || 'gmail',
     idempotency_key: item.idempotency_key
   });
   

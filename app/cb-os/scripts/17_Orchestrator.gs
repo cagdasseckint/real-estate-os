@@ -155,7 +155,7 @@ function gmail_scan_job(ctx) {
         Logger.log('GMAIL_SCAN | Scanning label: ' + labelName);
         const signalResult = processGmailSignals_(labelName, cursorBefore);
         result.scanned += signalResult.scanned;
-        result.leads_found += signalResult.signals;
+        result.leads_found += signalResult.enqueued;
         
       } catch (e) {
         Logger.log('GMAIL_SCAN | Error scanning label ' + label + ': ' + e.message);
