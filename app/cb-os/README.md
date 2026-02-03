@@ -35,6 +35,7 @@ appsscript.json    → Proje ayarları (manifest)
 19_CrmPipeline.gs  → CRM + Pipeline (Contacts/Opportunities)
 20_WorkflowEngine.gs → Workflow engine (WorkflowRules/WorkflowRuns)
 21_BookingSystem.gs → Booking system (Forms + Calendar)
+22_LeadCapture.gs → Lead capture (Forms -> CRM)
 ```
 
 ### 3. appsscript.json Güncelleme
@@ -159,5 +160,6 @@ ORCH_15MIN();
     ├── 18_Automations.gs         # Lead skorlama ve otomasyonlar
     ├── 19_CrmPipeline.gs         # CRM + Pipeline (Contacts/Opportunities)
     ├── 20_WorkflowEngine.gs      # Workflow engine (WorkflowRules/WorkflowRuns)
-    └── 21_BookingSystem.gs       # Booking system (Forms + Calendar)
+    ├── 21_BookingSystem.gs       # Booking system (Forms + Calendar)
+    └── 22_LeadCapture.gs         # Lead capture (Forms -> CRM)
 ```
