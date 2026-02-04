@@ -74,11 +74,16 @@ function bookingOnFormSubmit(e) {
     createFollowupTask_(payload, event);
   } else {
     const suggestions = suggestAlternativeSlots_(payload);
+    const status = suggestions.length > 0 ? 'rescheduled' : 'declined';
     updateBookingRow_(sheet, rowIndex, {
-      status: 'rescheduled',
+      status: status,
       suggested_slots_json: JSON.stringify(suggestions)
     });
-    sendRescheduleEmail_(payload, suggestions);
+    if (suggestions.length > 0) {
+      sendRescheduleEmail_(payload, suggestions);
+    } else {
+      sendDeclinedEmail_(payload);
+    }
   }
 }
 
@@ -108,7 +113,10 @@ function normalizePhoneBooking_(phone) {
 
 function parseTimeWindow_(dateStr, windowStr) {
   const tz = BOOKING_DEFAULTS.TIMEZONE;
-  const date = new Date(dateStr);
+  let date = new Date(dateStr);
+  if (isNaN(date.getTime())) {
+    date = new Date();
+  }
   const parts = windowStr.split('-').map(p => p.trim());
   const start = parts[0] || '10:00';
   const end = parts[1] || '18:00';
@@ -171,6 +179,27 @@ function suggestAlternativeSlots_(payload) {
     cursor = new Date(cursor.getTime() + slotMinutes * 60000);
   }
   
+  if (suggestions.length === 0) {
+    const nextDay = new Date(start);
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(BOOKING_DEFAULTS.WORK_START_HOUR, 0, 0, 0);
+    const endOfDay = new Date(nextDay);
+    endOfDay.setHours(BOOKING_DEFAULTS.WORK_END_HOUR, 0, 0, 0);
+    cursor = new Date(nextDay);
+    
+    while (cursor.getTime() + durationMs <= endOfDay.getTime() && suggestions.length < 3) {
+      const slotEnd = new Date(cursor.getTime() + durationMs);
+      const events = calendar.getEvents(cursor, slotEnd);
+      if (events.length === 0) {
+        suggestions.push({
+          start: cursor.toISOString(),
+          end: slotEnd.toISOString()
+        });
+      }
+      cursor = new Date(cursor.getTime() + slotMinutes * 60000);
+    }
+  }
+  
   return suggestions;
 }
 
@@ -203,6 +232,16 @@ function sendRescheduleEmail_(payload, suggestions) {
     'Merhaba ' + payload.name + ',',
     'Seçtiğiniz saat uygun değil. Alternatifler:',
     lines.join('\n')
+  ].join('\n');
+  GmailApp.sendEmail(payload.email, subject, body);
+}
+
+function sendDeclinedEmail_(payload) {
+  const subject = 'Randevu talebi için uygunluk yok';
+  const body = [
+    'Merhaba ' + payload.name + ',',
+    'Seçtiğiniz tarih ve saat aralığında uygunluk bulunamadı.',
+    'Dilerseniz farklı bir gün/saat ile tekrar talep oluşturabilirsiniz.'
   ].join('\n');
   GmailApp.sendEmail(payload.email, subject, body);
 }

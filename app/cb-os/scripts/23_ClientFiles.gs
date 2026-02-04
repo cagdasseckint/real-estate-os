@@ -83,7 +83,13 @@ function clientFilesExists_(contactId) {
   for (let i = 1; i < data.length; i++) {
     if (data[i][headers.indexOf('contact_id')] === contactId) return true;
   }
-  return false;
+  
+  const contact = getContactById_(contactId);
+  if (!contact) return false;
+  const root = getOrCreateClientsRoot_();
+  const folderName = contact.first_name + ' ' + contact.last_name + ' - ' + contact.contact_id;
+  const folders = root.getFoldersByName(folderName);
+  return folders.hasNext();
 }
 
 /**

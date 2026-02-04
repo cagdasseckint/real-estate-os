@@ -35,6 +35,13 @@ function leadOnFormSubmit(e) {
   
   if (contactResult.is_new) {
     sendWelcomeEmail_(payload, ownerEmail);
+    try {
+      if (typeof provisionClientFilesForContact_ === 'function') {
+        provisionClientFilesForContact_(contactResult.contact_id);
+      }
+    } catch (e) {
+      logLeadActivity_('contact', contactResult.contact_id, 'update', { error: e.message });
+    }
   }
   
   const opp = createOpportunityForLead_(payload, contactResult.contact_id, ownerEmail);
@@ -138,12 +145,19 @@ function selectOwnerRoundRobin_() {
   
   const data = sheet.getDataRange().getValues();
   const headers = data[0] || [];
-  if (data.length < 2) throw new Error('Owners sheet empty');
+  if (data.length < 2) {
+    const fallback = Session.getActiveUser().getEmail() || 'unassigned';
+    return fallback;
+  }
   
   const activeOwners = data.slice(1).filter(row => {
     const isActive = String(row[headers.indexOf('is_active')]).toLowerCase() === 'true';
     return isActive;
   });
+  
+  if (activeOwners.length === 0) {
+    return Session.getActiveUser().getEmail() || 'unassigned';
+  }
   
   let selected = activeOwners[0];
   for (const owner of activeOwners) {
@@ -171,11 +185,12 @@ function createOpportunityForLead_(payload, contactId, ownerEmail) {
   const headers = data[0] || [];
   const now = new Date().toISOString();
   const title = payload.first_name + ' ' + payload.last_name + ' - ' + payload.service;
+  const stageInfo = getDefaultPipelineStage_();
   const record = {
     opp_id: Utilities.getUuid(),
     contact_id: contactId,
-    pipeline_id: '',
-    stage_id: 'NEW_LEAD',
+    pipeline_id: stageInfo.pipeline_id,
+    stage_id: stageInfo.stage_id,
     title: title.trim(),
     value_amount: 0,
     currency: 'TRY',
@@ -189,6 +204,25 @@ function createOpportunityForLead_(payload, contactId, ownerEmail) {
   
   sheet.appendRow(headers.map(h => record[h] || ''));
   return record;
+}
+
+function getDefaultPipelineStage_() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Stages');
+  if (!sheet) return { pipeline_id: '', stage_id: 'NEW_LEAD' };
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  let selected = null;
+  for (let i = 1; i < data.length; i++) {
+    const order = Number(data[i][headers.indexOf('stage_order')] || 0);
+    if (!selected || order < selected.order) {
+      selected = {
+        stage_id: data[i][headers.indexOf('stage_id')],
+        pipeline_id: data[i][headers.indexOf('pipeline_id')],
+        order: order
+      };
+    }
+  }
+  return selected ? { pipeline_id: selected.pipeline_id, stage_id: selected.stage_id } : { pipeline_id: '', stage_id: 'NEW_LEAD' };
 }
 
 /**

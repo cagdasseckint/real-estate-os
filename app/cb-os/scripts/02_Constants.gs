@@ -46,6 +46,15 @@ const SHEETS = {
   DRIVE_SHARE_AUDIT: 'DRIVE_SHARE_AUDIT',
   ACCESS_INVENTORY: 'ACCESS_INVENTORY',
   SECURITY_SOP: 'SECURITY_SOP',
+  PROPERTIES: 'PROPERTIES',
+  AGREEMENTS: 'AGREEMENTS',
+  DOCUMENT_CHECKLISTS: 'DOCUMENT_CHECKLISTS',
+  VIEWINGS: 'VIEWINGS',
+  OFFERS: 'OFFERS',
+  PRICE_CHANGES: 'PRICE_CHANGES',
+  MARKETING_ASSETS: 'MARKETING_ASSETS',
+  CONSENTS: 'CONSENTS',
+  CONVERSION_QUEUE: 'CONVERSION_QUEUE',
   SMOKE_TEST_LOG: 'SMOKE_TEST_LOG',
   
   // Dashboard Tables
@@ -178,6 +187,48 @@ const CANONICAL_HEADERS = {
   
   SECURITY_SOP: [
     'item_id', 'category', 'description', 'status', 'last_reviewed_at'
+  ],
+  
+  PROPERTIES: [
+    'property_id', 'created_at', 'updated_at', 'deal_id', 'property_type',
+    'status', 'title', 'address', 'city', 'district', 'size_m2',
+    'price', 'currency', 'owner_contact_id', 'notes'
+  ],
+  
+  AGREEMENTS: [
+    'agreement_id', 'property_id', 'contact_id', 'agreement_type',
+    'start_date', 'end_date', 'commission_rate', 'status', 'notes'
+  ],
+  
+  DOCUMENT_CHECKLISTS: [
+    'checklist_id', 'property_type', 'required_docs_json', 'lock_publish', 'updated_at'
+  ],
+  
+  VIEWINGS: [
+    'viewing_id', 'property_id', 'contact_id', 'scheduled_at',
+    'status', 'notes', 'google_event_id'
+  ],
+  
+  OFFERS: [
+    'offer_id', 'property_id', 'contact_id', 'offer_price',
+    'currency', 'status', 'created_at', 'notes'
+  ],
+  
+  PRICE_CHANGES: [
+    'change_id', 'property_id', 'old_price', 'new_price', 'changed_at'
+  ],
+  
+  MARKETING_ASSETS: [
+    'asset_id', 'property_id', 'asset_type', 'drive_url', 'notes'
+  ],
+  
+  CONSENTS: [
+    'consent_id', 'contact_id', 'consent_type', 'status', 'ts', 'notes'
+  ],
+  
+  CONVERSION_QUEUE: [
+    'conversion_id', 'gclid', 'event_type', 'event_value',
+    'status', 'error', 'created_at', 'processed_at'
   ],
   
   SMOKE_TEST_LOG: [

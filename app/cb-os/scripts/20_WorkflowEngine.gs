@@ -249,11 +249,7 @@ function handleCreateDocFromTemplate_(action, ctx) {
   const folder = DriveApp.getFolderById(folderId);
   const copy = templateFile.makeCopy(filename, folder);
   const doc = DocumentApp.openById(copy.getId());
-  const body = doc.getBody();
-  body.replaceText(/{{\s*([^}]+)\s*}}/g, function(match, key) {
-    const value = getNestedValue_(ctx.payload, key.trim());
-    return value !== undefined && value !== null ? String(value) : '';
-  });
+  replaceDocPlaceholders_(doc, ctx.payload);
   doc.saveAndClose();
   return { action: 'CREATE_DOC_FROM_TEMPLATE', doc_id: copy.getId() };
 }
@@ -275,6 +271,22 @@ function renderTemplate_(template, data) {
 function getNestedValue_(obj, path) {
   if (!obj || !path) return '';
   return path.split('.').reduce((acc, part) => (acc && acc[part] !== undefined ? acc[part] : ''), obj);
+}
+
+function replaceDocPlaceholders_(doc, data) {
+  const body = doc.getBody();
+  const text = body.getText();
+  const matches = text.match(/{{\s*[^}]+\s*}}/g) || [];
+  const unique = [...new Set(matches)];
+  for (const placeholder of unique) {
+    const key = placeholder.replace(/{{|}}/g, '').trim();
+    const value = getNestedValue_(data, key);
+    body.replaceText(escapeRegex_(placeholder), value !== undefined && value !== null ? String(value) : '');
+  }
+}
+
+function escapeRegex_(value) {
+  return String(value).replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
 function isThrottled_(rule, ctx, minutes) {
