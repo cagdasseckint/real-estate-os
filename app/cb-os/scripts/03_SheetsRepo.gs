@@ -28,6 +28,11 @@ function sheet_(name, createIfMissing) {
   }
   
   if (createIfMissing) {
+    const schemaMode = cfg_('SCHEMA_MODE', DEFAULTS.SCHEMA_MODE || 'GREENFIELD');
+    if (String(schemaMode).toUpperCase() === 'SCHEMA_LOCKED') {
+      Logger.log('SCHEMA_LOCKED | Sheet missing: ' + name);
+      return null;
+    }
     // GREENFIELD MODE - create with canonical headers
     sheet = ss.insertSheet(name);
     _schemaModeCache[name] = 'GREENFIELD';
@@ -247,6 +252,7 @@ function seedDefaultConfig_() {
     ['DRIVE_SHARE_AUDIT_ENABLED', DEFAULTS.DRIVE_SHARE_AUDIT_ENABLED, 'Enable drive share audit reporting'],
     ['WINBACK_ENABLED', DEFAULTS.WINBACK_ENABLED, 'Enable win-back sequences for lost deals'],
     ['CLOSE_CHECKLIST_ENABLED', DEFAULTS.CLOSE_CHECKLIST_ENABLED, 'Enable close checklist tasks'],
+    ['SCHEMA_MODE', DEFAULTS.SCHEMA_MODE, 'Schema mode: GREENFIELD or SCHEMA_LOCKED'],
     ['DLQ_MAX_RETRY', DEFAULTS.DLQ_MAX_RETRY, 'Maximum DLQ retry attempts'],
     ['SMOKE_CHECKED_BY', DEFAULTS.SMOKE_CHECKED_BY, 'Default smoke test checked_by'],
     ['MODULES_CRM_ENABLED', DEFAULTS.MODULES_CRM_ENABLED, 'Enable CRM module (19_CrmPipeline)'],
@@ -350,6 +356,11 @@ function getSheetData_(sheetName) {
  */
 function appendRow_(sheetName, rowData) {
   const sheet = sheet_(sheetName, true);
+  if (!sheet) {
+    const message = 'APPEND_ROW | Sheet not found: ' + sheetName;
+    Logger.log(message);
+    throw new Error(message);
+  }
   const actualHeaders = sheet.getLastColumn() > 0
     ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
     : [];

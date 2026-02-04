@@ -83,25 +83,30 @@ const QueueRepo = {
   /**
    * Get pending items from queue (status = new)
    * Ordered by received_at ASC for gap-free cursor processing
-   * @param {string} cursorValue - Last processed received_at (exclusive)
+   * @param {string} cursorValue - Last processed received_at|ingest_id (exclusive)
    * @param {number} limit - Maximum items to return
    * @returns {Array<Object>} Pending queue items
    */
   getPending: function(cursorValue, limit) {
     const allData = getSheetData_(SHEETS.INGEST_QUEUE);
     
-    // Filter: status=new AND received_at > cursor
+    const cursor = parseIngestCursor_(cursorValue);
+    
+    // Filter: status=new AND (received_at, ingest_id) > cursor
     let pending = allData.filter(row => {
       const isNew = row.status === INGEST_STATUS.NEW;
-      const afterCursor = !cursorValue || row.received_at > cursorValue;
+      if (!cursorValue) return isNew;
+      const rowCursor = { received_at: row.received_at || '', ingest_id: row.ingest_id || '' };
+      const afterCursor = compareIngestCursor_(rowCursor, cursor) === 1;
       return isNew && afterCursor;
     });
     
-    // Sort by received_at ASC (gap-free requirement)
+    // Sort by (received_at, ingest_id) ASC (gap-free requirement)
     pending.sort((a, b) => {
-      if (a.received_at < b.received_at) return -1;
-      if (a.received_at > b.received_at) return 1;
-      return 0;
+      return compareIngestCursor_(
+        { received_at: a.received_at || '', ingest_id: a.ingest_id || '' },
+        { received_at: b.received_at || '', ingest_id: b.ingest_id || '' }
+      );
     });
     
     // Apply limit
