@@ -356,7 +356,11 @@ function getSheetData_(sheetName) {
  */
 function appendRow_(sheetName, rowData) {
   const sheet = sheet_(sheetName, true);
-  if (!sheet) return null;
+  if (!sheet) {
+    const message = 'APPEND_ROW | Sheet not found: ' + sheetName;
+    Logger.log(message);
+    throw new Error(message);
+  }
   const actualHeaders = sheet.getLastColumn() > 0
     ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
     : [];
