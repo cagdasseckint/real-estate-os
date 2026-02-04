@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 16_AuditTools.gs
- * Audit checks - Appendix A FINAL compliant
- * ops_log scope=audit_only
- */
-
-/**
  * Run all audit checks
  * @returns {Object} Audit results with NNO-1 status
  */
@@ -358,3 +352,4 @@ function runFullAudit() {
   
   return fullResults;
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

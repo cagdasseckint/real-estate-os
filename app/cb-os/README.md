@@ -1,4 +1,4 @@
-# CB-OS V1.0 - Kurulum ve Kullanım Kılavuzu
+# CB-OS V1.3 - Kurulum ve Kullanım Kılavuzu
 
 ## Hızlı Başlangıç
 
@@ -169,3 +169,4 @@ ORCH_15MIN();
     ├── 23_ClientFiles.gs         # Client files provisioning (Drive/Docs/Tasks)
     └── 24_ListingsAndCompliance.gs # Listings/Agreements/Consents/Conversions
 ```
+Çağdaş Seçkin Tüfekci - Real Estate Agent

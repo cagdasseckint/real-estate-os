@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 14_DLQRetryJob.gs
- * Dead Letter Queue retry job
- * Requeues failed items for reprocessing
- */
-
-/**
  * DLQ retry job - requeue failed items
  * @param {Object} ctx - Job context with orch_run_id
  * @returns {Object} Job result summary
@@ -188,3 +182,4 @@ function resolveDLQItem_(ingestId, resolution, notes) {
   Logger.log('DLQ | Resolved: ' + ingestId + ' as ' + resolution);
   return true;
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

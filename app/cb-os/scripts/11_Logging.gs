@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 11_Logging.gs
- * Logging utilities for JOB_RUN_LOG and ops_log
- * OPS_LOG timestamp standard: "YYYY-MM-DD HH:mm" (Europe/Istanbul)
- */
-
-/**
  * Log a job run to JOB_RUN_LOG
  * @param {Object} ctx - Job context with orch_run_id
  * @param {string} jobName - Name of the job
@@ -178,3 +172,4 @@ function createJobContext_(orchRunId) {
     batch_size: cfg_('ORCH_BATCH_SIZE', DEFAULTS.ORCH_BATCH_SIZE)
   };
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

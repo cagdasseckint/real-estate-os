@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 01_Config.gs
- * Configuration management with Sheets-based CONFIG table
- * Timezone: Europe/Istanbul
- */
-
-/**
  * Default configuration values
  * Used when CONFIG sheet doesn't have a key
  */
@@ -181,3 +175,4 @@ function refreshConfig_() {
 function getWorkbook_() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

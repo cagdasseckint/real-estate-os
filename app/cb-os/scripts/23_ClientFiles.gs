@@ -221,3 +221,4 @@ function logClientActivity_(entityType, entityId, action, details) {
   };
   sheet.appendRow(headers.map(h => record[h] || ''));
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

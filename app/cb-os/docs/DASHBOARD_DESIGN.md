@@ -273,3 +273,4 @@ Bu bölüm, **“yapılacaklar”ı eksiksiz ve uygulanabilir şekilde** listele
 - [ ] Ek helper tablar oluşturuldu
 - [ ] Drill-down sayfaları eklendi
 - [ ] Looker Studio Full Pro bağlandı
+Çağdaş Seçkin Tüfekci - Real Estate Agent

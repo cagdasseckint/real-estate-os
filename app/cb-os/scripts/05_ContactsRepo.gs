@@ -1,9 +1,4 @@
 /**
- * CB-OS V1.0 - 05_ContactsRepo.gs
- * CONTACTS table operations
- */
-
-/**
  * ContactsRepo namespace for CONTACTS operations
  */
 const ContactsRepo = {
@@ -160,3 +155,4 @@ function normalizePhone_(phone) {
   // Remove all non-digit characters
   return String(phone).replace(/\D/g, '');
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

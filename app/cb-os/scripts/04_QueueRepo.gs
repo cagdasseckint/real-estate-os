@@ -1,9 +1,4 @@
 /**
- * CB-OS V1.0 - 04_QueueRepo.gs
- * INGEST_QUEUE operations - the single entry point for all external data
- */
-
-/**
  * QueueRepo namespace for INGEST_QUEUE operations
  */
 const QueueRepo = {
@@ -238,3 +233,4 @@ const QueueRepo = {
     return true;
   }
 };
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

@@ -1,20 +1,4 @@
 /**
- * CB-OS V1.0 - 17_Orchestrator.gs
- * ORCH_15MIN function - main orchestration entry point
- * 
- * HARD-RULE COMPLIANCE:
- * - Hard-rule #1: Trigger creation is NOT done here - only function definition
- * - User must create time-driven trigger manually in Apps Script
- * 
- * JOB EXECUTION ORDER (LOCKED - do not change):
- * 1. ingest_process_job
- * 2. calendar_sync_job
- * 3. gmail_scan_job
- * 4. guardrails_job
- * 5. dlq_retry_job
- */
-
-/**
  * Main orchestrator function - to be triggered every 15 minutes
  * Does NOT create trigger - trigger must be set up manually in Apps Script
  * @param {Object} e - Trigger event (optional)
@@ -421,3 +405,4 @@ executing jobs in this order:
   Logger.log(instructions);
   return instructions;
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

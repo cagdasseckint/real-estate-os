@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 18_Automations.gs
- * Lead scoring, stage automations, follow-up sequences, docs packages,
- * email drafts, ops dashboards, and weekly KPI reporting.
- */
-
-/**
  * Record a lead signal entry for scoring
  * @param {Object} deal - Deal object
  * @param {Object} contact - Contact object
@@ -711,3 +705,4 @@ function extractDriveId_(url) {
   const match = String(url).match(/[-\w]{25,}/);
   return match ? match[0] : null;
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent
