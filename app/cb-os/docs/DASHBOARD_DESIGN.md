@@ -160,3 +160,116 @@ CONTACTS / DEALS / TASKS / EVENTS / ...
 ```
 
 Bu yapı ile **mevcut düzen bozulmadan**, yeni dashboard katmanı **başka sayfalarda** kurulmuş olur ve kullanıcı **Dashboard ↔ Ham Veri** arasında kolayca geçiş yapabilir.
+
+---
+
+## 8) Uygulama Aksiyon Planı (Mini MVP + Full Pro)
+
+Bu bölüm, **“yapılacaklar”ı eksiksiz ve uygulanabilir şekilde** listeler. Plan, mevcut SoT tablarını bozmadan ve yeni sayfalarda ilerler.
+
+### 8.1 Kurulum – Ortak Adımlar (MVP + Full Pro)
+
+**1) DASH_CONFIG oluştur (filtre merkezi)**
+- Yeni sayfa: `DASH_CONFIG`
+- Zorunlu alanlar: `start_date`, `end_date`, `owner`, `deal_type`, `region`, `currency`, `view_mode`
+- Filtrelerin tek kaynaktan yönetimi için tüm grafikler bu sayfadan beslenir.
+
+**2) Helper/Agregasyon tablarını oluştur**
+- `DASH_AGG_KPI`
+- `DASH_AGG_FUNNEL_D`
+- `DASH_AGG_PIPELINE_STAGE`
+- `DASH_AGG_TASK_HEALTH`
+- `DASH_AGG_OPS`
+- (Full Pro için ek) `DASH_AGG_LISTINGS`, `DASH_AGG_MARKETING`, `DASH_AGG_COMMISSIONS`,
+  `DASH_AGG_OPEN_HOUSE`, `DASH_AGG_CLIENTS`
+
+**3) DASH_HOME (navigasyon)**
+- Dashboard sayfalarına ve ham veri tablarına geçiş linkleri
+- `=HYPERLINK("#gid=…","→ DASHBOARD (Ana)")`
+
+---
+
+### 8.2 Mini MVP – Hızlı Canlıya Alma
+
+**Hedef:** 2–4 haftada “kullanılabilir” dashboard.
+
+**A) KPI Kartları + Sparklines (MVP)**
+- Kaynak: `DASH_AGG_KPI`
+- Minimum 8–10 kart (New Leads, New Deals, Open Pipeline, Conversion, SLA, Overdue, Ops Error, DLQ)
+
+**B) Funnel + Pipeline**
+- Funnel: `DASH_AGG_FUNNEL_D`
+- Pipeline Stage Bar: `DASH_AGG_PIPELINE_STAGE`
+
+**C) Ops Health & Task Health**
+- Ops: `DASH_AGG_OPS`
+- Task Health: `DASH_AGG_TASK_HEALTH`
+
+**D) Alerts Panel (MVP)**
+- “Overdue Tasks”, “Stuck Deals”, “Ops Critical” listesi
+- Mümkün olduğunca `TASKS` ve `DEALS` üzerinden filtre/sort ile sağlanır
+
+**MVP Çıktıları**
+- DASHBOARD sayfası (KPI + Funnel + Pipeline + Ops + Task)
+- DASH_DETAILS_TASKS, DASH_DETAILS_PIPELINE
+
+---
+
+### 8.3 Full Pro Paket – Genişleme
+
+**Amaç:** Ek modüller ve işlevsel ekranlar ile tam kapsam.
+
+**Eklenecek Dashboardlar**
+- LISTING / Portföy Dashboard
+- LEAD / CRM Dashboard
+- Pazarlama & Kanal Performansı
+- Komisyon & Gelir / Ödeme
+- Open House / Gösterim Performansı
+- Doküman & Süreç Checklist Sağlığı
+- Bölge / Market Trendleri & CMA
+- Aktivite / Follow-up Otomasyonu
+- Müşteri Memnuniyeti & Referans
+
+**Destekleyici Helper Tablar**
+- `DASH_AGG_LISTINGS`
+- `DASH_AGG_MARKETING`
+- `DASH_AGG_COMMISSIONS`
+- `DASH_AGG_OPEN_HOUSE`
+- `DASH_AGG_CLIENTS`
+
+---
+
+### 8.4 Looker Studio Entegrasyonu (MVP + Full Pro)
+
+**MVP Looker Studio**
+- KPI kartları, Funnel, Pipeline, Ops panel
+- `DASH_AGG_*` tablarını veri kaynağı olarak bağla
+
+**Full Pro Looker Studio**
+- Ek modüller ve drill-down sayfaları
+- Global filtreler + cross-filtering
+
+---
+
+## 9) Uygulama Kontrol Listesi (Tamamlandı/Takip)
+
+**Mini MVP**
+- [ ] DASH_CONFIG oluşturuldu
+- [ ] DASH_AGG_KPI oluşturuldu
+- [ ] DASH_AGG_FUNNEL_D oluşturuldu
+- [ ] DASH_AGG_PIPELINE_STAGE oluşturuldu
+- [ ] DASH_AGG_TASK_HEALTH oluşturuldu
+- [ ] DASH_AGG_OPS oluşturuldu
+- [ ] DASHBOARD (MVP layout) hazırlandı
+- [ ] KPI kartları yerleştirildi
+- [ ] Funnel chart eklendi
+- [ ] Pipeline stage chart eklendi
+- [ ] Ops Health panel eklendi
+- [ ] Task Health panel eklendi
+- [ ] Alerts listesi eklendi
+
+**Full Pro**
+- [ ] Ek dashboard sayfaları oluşturuldu
+- [ ] Ek helper tablar oluşturuldu
+- [ ] Drill-down sayfaları eklendi
+- [ ] Looker Studio Full Pro bağlandı
