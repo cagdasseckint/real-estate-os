@@ -27,11 +27,8 @@ function getCursor_(cursorKey) {
  */
 function setCursor_(cursorKey, value) {
   const configKey = 'CURSOR_' + cursorKey;
-  const sheet = sheet_(SHEETS.CONFIG, false);
-  if (!sheet) {
-    Logger.log('CURSOR | CONFIG sheet missing, cannot set ' + cursorKey);
-    return;
-  }
+  const sheet = sheet_(SHEETS.CONFIG, true);
+  if (!sheet) return;
   
   // Find existing row
   const data = sheet.getDataRange().getValues();
@@ -67,8 +64,8 @@ function id_() {
 }
 
 /**
- * Generate ISO timestamp with timezone offset (milliseconds)
- * Format: yyyy-MM-dd'T'HH:mm:ss.SSSXXX (e.g., 2026-01-15T14:30:00.123+03:00)
+ * Generate ISO timestamp with timezone offset
+ * Format: yyyy-MM-dd'T'HH:mm:ssXXX (e.g., 2026-01-15T14:30:00+03:00)
  * @param {string} tz - Timezone (default: Europe/Istanbul)
  * @returns {string} ISO timestamp with offset
  */
@@ -78,7 +75,7 @@ function nowIso_(tz) {
 }
 
 /**
- * Format a Date to ISO string with timezone offset (milliseconds).
+ * Format a Date to ISO string with timezone offset (no milliseconds).
  * @param {Date} dateObj - Date instance
  * @param {string} tz - Timezone (default: Europe/Istanbul)
  * @returns {string} ISO timestamp with offset
@@ -88,7 +85,7 @@ function formatIsoWithOffset_(dateObj, tz) {
   const date = dateObj || new Date();
   
   try {
-    const formatted = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+    const formatted = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
     if (formatted.match(/[+-]\d{2}:\d{2}$/)) {
       return formatted;
     }
@@ -96,7 +93,7 @@ function formatIsoWithOffset_(dateObj, tz) {
     // Fall through to manual calculation
   }
   
-  const basePart = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ss.SSS");
+  const basePart = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ss");
   const offset = '+03:00';
   return basePart + offset;
 }
@@ -147,16 +144,54 @@ function compareIso_(a, b) {
 }
 
 /**
- * Check if timestamp has valid format (milliseconds optional)
+ * Check if timestamp has valid format
  * @param {string} timestamp - Timestamp to validate
  * @returns {boolean} True if valid format
  */
 function isValidIsoFormat_(timestamp) {
   if (!timestamp) return false;
   
-  // Pattern: yyyy-MM-dd'T'HH:mm:ss(.SSS)?+XX:XX or yyyy-MM-dd'T'HH:mm:ss(.SSS)?-XX:XX
-  const pattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?[+-]\d{2}:\d{2}$/;
+  // Pattern: yyyy-MM-dd'T'HH:mm:ss+XX:XX or yyyy-MM-dd'T'HH:mm:ss-XX:XX
+  const pattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/;
   return pattern.test(timestamp);
+}
+
+/**
+ * Build composite cursor value for ingest ordering (received_at + ingest_id)
+ * @param {string} receivedAt - ISO timestamp
+ * @param {string} ingestId - Ingest ID
+ * @returns {string} Composite cursor value
+ */
+function buildIngestCursor_(receivedAt, ingestId) {
+  return (receivedAt || '') + '|' + (ingestId || '');
+}
+
+/**
+ * Parse composite cursor value into parts
+ * @param {string} cursorValue - Cursor string
+ * @returns {Object} Parsed cursor with received_at and ingest_id
+ */
+function parseIngestCursor_(cursorValue) {
+  if (!cursorValue) return { received_at: '', ingest_id: '' };
+  const parts = String(cursorValue).split('|');
+  return {
+    received_at: parts[0] || '',
+    ingest_id: parts[1] || ''
+  };
+}
+
+/**
+ * Compare two ingest cursors
+ * @param {Object} a - Cursor {received_at, ingest_id}
+ * @param {Object} b - Cursor {received_at, ingest_id}
+ * @returns {number} -1 if a < b, 0 if equal, 1 if a > b
+ */
+function compareIngestCursor_(a, b) {
+  const tsCompare = compareIso_(a.received_at, b.received_at);
+  if (tsCompare !== 0) return tsCompare;
+  if (a.ingest_id < b.ingest_id) return -1;
+  if (a.ingest_id > b.ingest_id) return 1;
+  return 0;
 }
 
 /**

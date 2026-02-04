@@ -58,7 +58,7 @@ function ingest_process_job(ctx) {
           // Duplicate - skip
           QueueRepo.markSkipped(item._rowIndex);
           result.skipped++;
-          cursorAfter = item.received_at;
+          cursorAfter = buildIngestCursor_(item.received_at, item.ingest_id);
           
           Logger.log('INGEST_PROCESS | Skipped duplicate: ' + item.idempotency_key);
           continue;
@@ -71,7 +71,7 @@ function ingest_process_job(ctx) {
       if (processResult.success) {
         QueueRepo.markCompleted(item._rowIndex);
         result.processed++;
-        cursorAfter = item.received_at;
+        cursorAfter = buildIngestCursor_(item.received_at, item.ingest_id);
         
         Logger.log('INGEST_PROCESS | Completed: ' + item.ingest_id);
         
