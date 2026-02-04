@@ -71,32 +71,7 @@ function id_() {
  */
 function nowIso_(tz) {
   const timezone = tz || cfg_('TIMEZONE', DEFAULTS.TIMEZONE);
-  const now = new Date();
-  
-  // Try to use Utilities.formatDate with XXX pattern
-  // If not supported, calculate offset manually
-  try {
-    // First try with XXX pattern
-    const formatted = Utilities.formatDate(now, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
-    
-    // Verify it has offset (XXX produces +03:00 format)
-    if (formatted.match(/[+-]\d{2}:\d{2}$/)) {
-      return formatted;
-    }
-  } catch (e) {
-    // Fall through to manual calculation
-  }
-  
-  // Manual offset calculation
-  // Format base datetime
-  const basePart = Utilities.formatDate(now, timezone, "yyyy-MM-dd'T'HH:mm:ss");
-  
-  // Calculate offset for Europe/Istanbul
-  // Turkey abolished DST in 2016, +03:00 is permanent (no seasonal changes)
-  // This hardcoded value is intentional and compliant with V1.0 hard-rule #4
-  const offset = '+03:00';
-  
-  return basePart + offset;
+  return formatIsoWithOffset_(new Date(), timezone);
 }
 
 /**

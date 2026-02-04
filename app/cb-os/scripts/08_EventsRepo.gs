@@ -62,9 +62,9 @@ const EventsRepo = {
     
     // Sort by occurred_at DESC (newest first)
     filtered.sort((a, b) => {
-      if (a.occurred_at > b.occurred_at) return -1;
-      if (a.occurred_at < b.occurred_at) return 1;
-      return 0;
+      const aMs = parseCbTimeMs_(a.occurred_at) || 0;
+      const bMs = parseCbTimeMs_(b.occurred_at) || 0;
+      return bMs - aMs;
     });
     
     return filtered;
@@ -118,9 +118,9 @@ const EventsRepo = {
     
     // Sort by occurred_at DESC
     allData.sort((a, b) => {
-      if (a.occurred_at > b.occurred_at) return -1;
-      if (a.occurred_at < b.occurred_at) return 1;
-      return 0;
+      const aMs = parseCbTimeMs_(a.occurred_at) || 0;
+      const bMs = parseCbTimeMs_(b.occurred_at) || 0;
+      return bMs - aMs;
     });
     
     return allData.slice(0, limit || 50);

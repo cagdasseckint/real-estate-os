@@ -350,9 +350,10 @@ function appendRow_(sheetName, rowData) {
   const actualHeaders = sheet.getLastColumn() > 0
     ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
     : [];
+  const canonicalHeaders = CANONICAL_HEADERS[sheetName] || [];
   const headers = actualHeaders && actualHeaders.length > 0 && actualHeaders.some(h => h)
     ? actualHeaders
-    : (CANONICAL_HEADERS[sheetName] || Object.keys(rowData || {}));
+    : (canonicalHeaders.length > 0 ? canonicalHeaders : Object.keys(rowData || {}));
 
   const rowArray = headers.map(col => rowData[col] !== undefined ? rowData[col] : '');
   sheet.appendRow(rowArray);
