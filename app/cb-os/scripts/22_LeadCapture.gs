@@ -16,6 +16,7 @@ const LEAD_OWNER_HEADERS = ['owner_email', 'is_active', 'last_assigned_at'];
  * Bootstrap Owners sheet
  */
 function bootstrapLeadOwnersSheet_() {
+  if (!cfg_('MODULES_LEAD_CAPTURE_ENABLED', DEFAULTS.MODULES_LEAD_CAPTURE_ENABLED)) return;
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName(LEAD_SHEETS.OWNERS);
   if (!sheet) {
@@ -29,6 +30,7 @@ function bootstrapLeadOwnersSheet_() {
  * Form submit handler for lead capture
  */
 function leadOnFormSubmit(e) {
+  if (!cfg_('MODULES_LEAD_CAPTURE_ENABLED', DEFAULTS.MODULES_LEAD_CAPTURE_ENABLED)) return;
   const payload = normalizeLeadPayload_(e);
   const ownerEmail = selectOwnerRoundRobin_();
   const contactResult = upsertContactLead_(payload, ownerEmail);

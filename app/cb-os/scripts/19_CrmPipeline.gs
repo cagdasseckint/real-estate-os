@@ -31,6 +31,7 @@ const CRM_HEADERS = {
  * Bootstrap CRM sheets with canonical headers and report tab
  */
 function bootstrapCrmSheets_() {
+  if (!cfg_('MODULES_CRM_ENABLED', DEFAULTS.MODULES_CRM_ENABLED)) return { created: [], skipped: true };
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const created = [];
   Object.keys(CRM_HEADERS).forEach(name => {
@@ -232,6 +233,7 @@ function logActivity_(entityType, entityId, action, details) {
  * onEdit trigger for Opportunities stage/status updates
  */
 function onEdit(e) {
+  if (!cfg_('MODULES_CRM_ENABLED', DEFAULTS.MODULES_CRM_ENABLED)) return;
   const range = e.range;
   const sheet = range.getSheet();
   if (sheet.getName() !== CRM_SHEETS.OPPORTUNITIES) return;
