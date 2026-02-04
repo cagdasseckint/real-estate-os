@@ -88,10 +88,13 @@ const EventsRepo = {
   getRecent: function(hours) {
     const cutoff = new Date();
     cutoff.setHours(cutoff.getHours() - (hours || 24));
-    const cutoffIso = cutoff.toISOString();
+    const cutoffMs = cutoff.getTime();
     
     const allData = getSheetData_(SHEETS.EVENTS);
-    return allData.filter(row => row.occurred_at >= cutoffIso);
+    return allData.filter(row => {
+      const occurredMs = parseCbTimeMs_(row.occurred_at);
+      return occurredMs !== null && occurredMs >= cutoffMs;
+    });
   },
   
   /**

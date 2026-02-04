@@ -100,6 +100,30 @@ function nowIso_(tz) {
 }
 
 /**
+ * Format a Date to ISO string with timezone offset (no milliseconds).
+ * @param {Date} dateObj - Date instance
+ * @param {string} tz - Timezone (default: Europe/Istanbul)
+ * @returns {string} ISO timestamp with offset
+ */
+function formatIsoWithOffset_(dateObj, tz) {
+  const timezone = tz || cfg_('TIMEZONE', DEFAULTS.TIMEZONE);
+  const date = dateObj || new Date();
+  
+  try {
+    const formatted = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+    if (formatted.match(/[+-]\d{2}:\d{2}$/)) {
+      return formatted;
+    }
+  } catch (e) {
+    // Fall through to manual calculation
+  }
+  
+  const basePart = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ss");
+  const offset = '+03:00';
+  return basePart + offset;
+}
+
+/**
  * Parse ISO timestamp to Date object
  * @param {string} isoString - ISO timestamp
  * @returns {Date} Date object
@@ -113,6 +137,19 @@ function parseIso_(isoString) {
     Logger.log('parseIso_ error: ' + e.message);
     return null;
   }
+}
+
+/**
+ * Parse ISO timestamp to epoch milliseconds
+ * Accepts both +03:00 and Z formats.
+ * @param {string} isoString - ISO timestamp
+ * @returns {number|null} Epoch milliseconds or null
+ */
+function parseCbTimeMs_(isoString) {
+  if (!isoString) return null;
+  const parsed = new Date(isoString);
+  const ms = parsed.getTime();
+  return isNaN(ms) ? null : ms;
 }
 
 /**

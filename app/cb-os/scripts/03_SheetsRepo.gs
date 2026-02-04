@@ -347,9 +347,13 @@ function getSheetData_(sheetName) {
  */
 function appendRow_(sheetName, rowData) {
   const sheet = sheet_(sheetName, true);
-  const headers = CANONICAL_HEADERS[sheetName] || 
-                  sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
+  const actualHeaders = sheet.getLastColumn() > 0
+    ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    : [];
+  const headers = actualHeaders && actualHeaders.length > 0 && actualHeaders.some(h => h)
+    ? actualHeaders
+    : (CANONICAL_HEADERS[sheetName] || Object.keys(rowData || {}));
+
   const rowArray = headers.map(col => rowData[col] !== undefined ? rowData[col] : '');
   sheet.appendRow(rowArray);
   

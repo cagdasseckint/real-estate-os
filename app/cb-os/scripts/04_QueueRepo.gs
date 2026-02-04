@@ -21,7 +21,7 @@ const QueueRepo = {
    */
   enqueue: function(item) {
     const ingestId = id_();
-    const receivedAt = nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE));
+    const receivedAt = this._nextReceivedAt_();
     
     const queueRow = {
       status: INGEST_STATUS.NEW,
@@ -45,6 +45,39 @@ const QueueRepo = {
       received_at: receivedAt,
       row_number: rowNum
     };
+  },
+
+  /**
+   * Generate a unique received_at timestamp to avoid cursor ties.
+   * Ensures monotonic increase within INGEST_QUEUE.
+   * @returns {string} ISO timestamp with offset
+   */
+  _nextReceivedAt_: function() {
+    const timezone = cfg_('TIMEZONE', DEFAULTS.TIMEZONE);
+    const now = new Date();
+    let nextIso = formatIsoWithOffset_(now, timezone);
+    const sheet = sheet_(SHEETS.INGEST_QUEUE, true);
+    if (!sheet) return nextIso;
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return nextIso;
+    
+    const colIdx = getColIndex_(SHEETS.INGEST_QUEUE, 'received_at');
+    if (colIdx === -1) return nextIso;
+    
+    const lastValue = sheet.getRange(lastRow, colIdx + 1).getValue();
+    if (!lastValue) return nextIso;
+    
+    const lastMs = parseCbTimeMs_(String(lastValue));
+    const nowMs = parseCbTimeMs_(nextIso);
+    if (lastMs === null || nowMs === null) return nextIso;
+    
+    if (lastMs >= nowMs) {
+      const bumped = new Date(lastMs + 1000);
+      nextIso = formatIsoWithOffset_(bumped, timezone);
+    }
+    
+    return nextIso;
   },
   
   /**
