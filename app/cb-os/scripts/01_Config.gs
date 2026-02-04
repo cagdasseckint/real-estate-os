@@ -173,6 +173,20 @@ function refreshConfig_() {
  * @returns {Spreadsheet} Active spreadsheet
  */
 function getWorkbook_() {
-  return SpreadsheetApp.getActiveSpreadsheet();
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+
+  const scriptProps = PropertiesService.getScriptProperties();
+  const spreadsheetId = scriptProps.getProperty('CB_OS_SPREADSHEET_ID')
+    || scriptProps.getProperty('SPREADSHEET_ID');
+
+  if (spreadsheetId) {
+    return SpreadsheetApp.openById(spreadsheetId);
+  }
+
+  const created = SpreadsheetApp.create('CB-OS');
+  scriptProps.setProperty('CB_OS_SPREADSHEET_ID', created.getId());
+  Logger.log('WORKBOOK | Created new spreadsheet and stored CB_OS_SPREADSHEET_ID.');
+  return created;
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent
