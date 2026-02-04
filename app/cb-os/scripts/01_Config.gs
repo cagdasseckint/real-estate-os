@@ -36,7 +36,10 @@ const DEFAULTS = {
   TASKS_PROVIDER: 'google_tasks',
   WRITE_PATH_RULE: 'all_external_inputs_to_ingest_queue_only',
   DLQ_MAX_RETRY: 3,
-  SMOKE_CHECKED_BY: 'Real_Estate_Agent'
+  SMOKE_CHECKED_BY: 'Real_Estate_Agent',
+  MODULES_CRM_ENABLED: false,
+  MODULES_WORKFLOW_ENABLED: false,
+  MODULES_LEAD_CAPTURE_ENABLED: false
 };
 
 /**

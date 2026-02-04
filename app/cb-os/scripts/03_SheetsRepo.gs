@@ -248,7 +248,10 @@ function seedDefaultConfig_() {
     ['WINBACK_ENABLED', DEFAULTS.WINBACK_ENABLED, 'Enable win-back sequences for lost deals'],
     ['CLOSE_CHECKLIST_ENABLED', DEFAULTS.CLOSE_CHECKLIST_ENABLED, 'Enable close checklist tasks'],
     ['DLQ_MAX_RETRY', DEFAULTS.DLQ_MAX_RETRY, 'Maximum DLQ retry attempts'],
-    ['SMOKE_CHECKED_BY', DEFAULTS.SMOKE_CHECKED_BY, 'Default smoke test checked_by']
+    ['SMOKE_CHECKED_BY', DEFAULTS.SMOKE_CHECKED_BY, 'Default smoke test checked_by'],
+    ['MODULES_CRM_ENABLED', DEFAULTS.MODULES_CRM_ENABLED, 'Enable CRM module (19_CrmPipeline)'],
+    ['MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED, 'Enable workflow engine module (20_WorkflowEngine)'],
+    ['MODULES_LEAD_CAPTURE_ENABLED', DEFAULTS.MODULES_LEAD_CAPTURE_ENABLED, 'Enable lead capture module (22_LeadCapture)']
   ];
   
   // Append after header row
@@ -347,9 +350,14 @@ function getSheetData_(sheetName) {
  */
 function appendRow_(sheetName, rowData) {
   const sheet = sheet_(sheetName, true);
-  const headers = CANONICAL_HEADERS[sheetName] || 
-                  sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  
+  const actualHeaders = sheet.getLastColumn() > 0
+    ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+    : [];
+  const canonicalHeaders = CANONICAL_HEADERS[sheetName] || [];
+  const headers = actualHeaders && actualHeaders.length > 0 && actualHeaders.some(h => h)
+    ? actualHeaders
+    : (canonicalHeaders.length > 0 ? canonicalHeaders : Object.keys(rowData || {}));
+
   const rowArray = headers.map(col => rowData[col] !== undefined ? rowData[col] : '');
   sheet.appendRow(rowArray);
   

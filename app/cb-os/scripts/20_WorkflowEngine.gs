@@ -24,6 +24,7 @@ const WF_HEADERS = {
  * Bootstrap workflow sheets with headers
  */
 function bootstrapWorkflowSheets_() {
+  if (!cfg_('MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED)) return;
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   Object.keys(WF_HEADERS).forEach(name => {
     let sheet = ss.getSheetByName(name);
@@ -39,6 +40,7 @@ function bootstrapWorkflowSheets_() {
  * Trigger handler for form submit
  */
 function onFormSubmit(e) {
+  if (!cfg_('MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED)) return;
   const payload = e && e.namedValues ? e.namedValues : {};
   runWorkflowEngine_('FORM_SUBMIT', {
     entity_type: 'FORM',
@@ -51,6 +53,7 @@ function onFormSubmit(e) {
  * Trigger handler for time-based
  */
 function workflowTimeTrigger_() {
+  if (!cfg_('MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED)) return;
   runWorkflowEngine_('TIME', {
     entity_type: 'TIME',
     entity_id: String(new Date().getTime()),
@@ -62,6 +65,7 @@ function workflowTimeTrigger_() {
  * Trigger handler for sheet edit (CRM)
  */
 function workflowOnEdit(e) {
+  if (!cfg_('MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED)) return;
   const range = e.range;
   const sheet = range.getSheet();
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];

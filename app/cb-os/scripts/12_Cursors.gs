@@ -71,15 +71,21 @@ function id_() {
  */
 function nowIso_(tz) {
   const timezone = tz || cfg_('TIMEZONE', DEFAULTS.TIMEZONE);
-  const now = new Date();
+  return formatIsoWithOffset_(new Date(), timezone);
+}
+
+/**
+ * Format a Date to ISO string with timezone offset (no milliseconds).
+ * @param {Date} dateObj - Date instance
+ * @param {string} tz - Timezone (default: Europe/Istanbul)
+ * @returns {string} ISO timestamp with offset
+ */
+function formatIsoWithOffset_(dateObj, tz) {
+  const timezone = tz || cfg_('TIMEZONE', DEFAULTS.TIMEZONE);
+  const date = dateObj || new Date();
   
-  // Try to use Utilities.formatDate with XXX pattern
-  // If not supported, calculate offset manually
   try {
-    // First try with XXX pattern
-    const formatted = Utilities.formatDate(now, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
-    
-    // Verify it has offset (XXX produces +03:00 format)
+    const formatted = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
     if (formatted.match(/[+-]\d{2}:\d{2}$/)) {
       return formatted;
     }
@@ -87,15 +93,8 @@ function nowIso_(tz) {
     // Fall through to manual calculation
   }
   
-  // Manual offset calculation
-  // Format base datetime
-  const basePart = Utilities.formatDate(now, timezone, "yyyy-MM-dd'T'HH:mm:ss");
-  
-  // Calculate offset for Europe/Istanbul
-  // Turkey abolished DST in 2016, +03:00 is permanent (no seasonal changes)
-  // This hardcoded value is intentional and compliant with V1.0 hard-rule #4
+  const basePart = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ss");
   const offset = '+03:00';
-  
   return basePart + offset;
 }
 
@@ -113,6 +112,19 @@ function parseIso_(isoString) {
     Logger.log('parseIso_ error: ' + e.message);
     return null;
   }
+}
+
+/**
+ * Parse ISO timestamp to epoch milliseconds
+ * Accepts both +03:00 and Z formats.
+ * @param {string} isoString - ISO timestamp
+ * @returns {number|null} Epoch milliseconds or null
+ */
+function parseCbTimeMs_(isoString) {
+  if (!isoString) return null;
+  const parsed = new Date(isoString);
+  const ms = parsed.getTime();
+  return isNaN(ms) ? null : ms;
 }
 
 /**

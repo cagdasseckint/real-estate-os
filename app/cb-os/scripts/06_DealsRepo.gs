@@ -186,14 +186,15 @@ const DealsRepo = {
     const threshold = days || cfg_('STUCK_STAGE_DAYS_THRESHOLD', DEFAULTS.STUCK_STAGE_DAYS_THRESHOLD);
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - threshold);
-    const cutoffIso = cutoff.toISOString();
+    const cutoffMs = cutoff.getTime();
     
     const allData = getSheetData_(SHEETS.DEALS);
     return allData.filter(row => {
       // Exclude closed deals
       if (row.stage === 'CLOSED_WON' || row.stage === 'CLOSED_LOST') return false;
       // Check last stage change
-      return row.last_stage_change_at && row.last_stage_change_at < cutoffIso;
+      const lastChangeMs = parseCbTimeMs_(row.last_stage_change_at);
+      return lastChangeMs !== null && lastChangeMs < cutoffMs;
     });
   },
   

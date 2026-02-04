@@ -62,9 +62,9 @@ const EventsRepo = {
     
     // Sort by occurred_at DESC (newest first)
     filtered.sort((a, b) => {
-      if (a.occurred_at > b.occurred_at) return -1;
-      if (a.occurred_at < b.occurred_at) return 1;
-      return 0;
+      const aMs = parseCbTimeMs_(a.occurred_at) || 0;
+      const bMs = parseCbTimeMs_(b.occurred_at) || 0;
+      return bMs - aMs;
     });
     
     return filtered;
@@ -88,10 +88,13 @@ const EventsRepo = {
   getRecent: function(hours) {
     const cutoff = new Date();
     cutoff.setHours(cutoff.getHours() - (hours || 24));
-    const cutoffIso = cutoff.toISOString();
+    const cutoffMs = cutoff.getTime();
     
     const allData = getSheetData_(SHEETS.EVENTS);
-    return allData.filter(row => row.occurred_at >= cutoffIso);
+    return allData.filter(row => {
+      const occurredMs = parseCbTimeMs_(row.occurred_at);
+      return occurredMs !== null && occurredMs >= cutoffMs;
+    });
   },
   
   /**
@@ -115,9 +118,9 @@ const EventsRepo = {
     
     // Sort by occurred_at DESC
     allData.sort((a, b) => {
-      if (a.occurred_at > b.occurred_at) return -1;
-      if (a.occurred_at < b.occurred_at) return 1;
-      return 0;
+      const aMs = parseCbTimeMs_(a.occurred_at) || 0;
+      const bMs = parseCbTimeMs_(b.occurred_at) || 0;
+      return bMs - aMs;
     });
     
     return allData.slice(0, limit || 50);
