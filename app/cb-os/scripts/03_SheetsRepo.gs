@@ -200,18 +200,21 @@ function validateHeaders_(sheet, sheetName) {
  * @returns {number} Column index (0-based) or -1 if not found
  */
 function getColIndex_(sheetName, columnName) {
-  const canonical = CANONICAL_HEADERS[sheetName];
-  if (canonical) {
-    const idx = canonical.indexOf(columnName);
+  // Prefer actual sheet headers to respect SCHEMA_LOCKED column order
+  const sheet = sheet_(sheetName, false);
+  if (sheet) {
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const idx = headers.indexOf(columnName);
     if (idx !== -1) return idx;
   }
   
-  // Fallback: read from actual sheet
-  const sheet = sheet_(sheetName, false);
-  if (!sheet) return -1;
+  // Fallback to canonical definition
+  const canonical = CANONICAL_HEADERS[sheetName];
+  if (canonical) {
+    return canonical.indexOf(columnName);
+  }
   
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  return headers.indexOf(columnName);
+  return -1;
 }
 
 /**
