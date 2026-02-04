@@ -36,19 +36,14 @@ function ingest_process_job(ctx) {
       // Parse payload
       const payload = parseJsonSafe_(item.payload_json);
       if (!payload) {
-        // JSON parse failure -> DLQ
-        QueueRepo.markFailed(item._rowIndex, item, 'JSON parse error');
+        // JSON parse failure -> DLQ (permanent poison pill)
+        QueueRepo.markFailed(item._rowIndex, item, 'JSON parse error', 'permanent');
         result.failed++;
-        result.stopped_on_failure = true;
+        cursorAfter = buildIngestCursor_(item.received_at, item.sequence_id, item.ingest_id);
         
-        // Gap-free: log and break
-        logJobRun_(ctx, jobName, cursorBefore, cursorAfter, 
-                   AUDIT_CONTRACT_STRING, 
-                   'Failed on ingest_id=' + item.ingest_id + ': JSON parse error');
-        
-        // Evidence logging
-        logEvidence_('INGEST_FAIL', 'ingest_id=' + item.ingest_id + ' | error=JSON parse error');
-        break;
+        // Evidence logging (do not halt queue for permanent errors)
+        logEvidence_('INGEST_FAIL_PERMANENT', 'ingest_id=' + item.ingest_id + ' | error=JSON parse error');
+        continue;
       }
       
       // Check idempotency
@@ -58,7 +53,7 @@ function ingest_process_job(ctx) {
           // Duplicate - skip
           QueueRepo.markSkipped(item._rowIndex);
           result.skipped++;
-          cursorAfter = buildIngestCursor_(item.received_at, item.ingest_id);
+          cursorAfter = buildIngestCursor_(item.received_at, item.sequence_id, item.ingest_id);
           
           Logger.log('INGEST_PROCESS | Skipped duplicate: ' + item.idempotency_key);
           continue;
@@ -71,19 +66,26 @@ function ingest_process_job(ctx) {
       if (processResult.success) {
         QueueRepo.markCompleted(item._rowIndex);
         result.processed++;
-        cursorAfter = buildIngestCursor_(item.received_at, item.ingest_id);
+        cursorAfter = buildIngestCursor_(item.received_at, item.sequence_id, item.ingest_id);
         
         Logger.log('INGEST_PROCESS | Completed: ' + item.ingest_id);
         
         // Evidence logging
         logEvidence_('INGEST_SUCCESS', 'ingest_id=' + item.ingest_id + ' | type=' + item.ingest_type);
       } else {
-        // Processing failure -> DLQ
-        QueueRepo.markFailed(item._rowIndex, item, processResult.error);
+        const errorType = processResult.error_type || classifyIngestError_(processResult.error);
+        QueueRepo.markFailed(item._rowIndex, item, processResult.error, errorType);
         result.failed++;
+        
+        if (errorType === 'permanent') {
+          cursorAfter = buildIngestCursor_(item.received_at, item.sequence_id, item.ingest_id);
+          logEvidence_('INGEST_FAIL_PERMANENT', 'ingest_id=' + item.ingest_id + ' | error=' + processResult.error);
+          continue;
+        }
+        
         result.stopped_on_failure = true;
         
-        // Gap-free: log and break
+        // Gap-free: log and break for transient errors
         logJobRun_(ctx, jobName, cursorBefore, cursorAfter, 
                    AUDIT_CONTRACT_STRING, 
                    'Failed on ingest_id=' + item.ingest_id + ': ' + processResult.error);
@@ -94,7 +96,7 @@ function ingest_process_job(ctx) {
       
     } catch (e) {
       // Unexpected error -> DLQ
-      QueueRepo.markFailed(item._rowIndex, item, 'Unexpected error: ' + e.message);
+      QueueRepo.markFailed(item._rowIndex, item, 'Unexpected error: ' + e.message, 'transient');
       result.failed++;
       result.stopped_on_failure = true;
       
@@ -168,11 +170,24 @@ function routeIngestItem_(item, payload) {
         
       default:
         Logger.log('INGEST | Unknown type: ' + ingestType);
-        return { success: false, error: 'Unknown ingest_type: ' + ingestType };
+        return { success: false, error: 'Unknown ingest_type: ' + ingestType, error_type: 'permanent' };
     }
   } catch (e) {
-    return { success: false, error: 'Handler error: ' + e.message };
+    return { success: false, error: 'Handler error: ' + e.message, error_type: 'transient' };
   }
+}
+
+/**
+ * Classify ingest errors as permanent or transient.
+ * @param {string} errorMsg - Error message
+ * @returns {string} Error type
+ */
+function classifyIngestError_(errorMsg) {
+  const msg = String(errorMsg || '').toLowerCase();
+  if (msg.includes('json parse') || msg.includes('unknown ingest_type') || msg.includes('normalization error')) {
+    return 'permanent';
+  }
+  return 'transient';
 }
 
 /**

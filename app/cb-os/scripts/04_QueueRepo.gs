@@ -22,11 +22,13 @@ const QueueRepo = {
   enqueue: function(item) {
     const ingestId = id_();
     const receivedAt = this._nextReceivedAt_();
+    const sequenceId = this._nextSequenceId_();
     
     const queueRow = {
       status: INGEST_STATUS.NEW,
       ingest_id: ingestId,
       received_at: receivedAt,
+      sequence_id: sequenceId,
       ingest_type: item.ingest_type || '',
       payload_json: typeof item.payload === 'string' ? item.payload : JSON.stringify(item.payload || {}),
       source: item.source || '',
@@ -43,6 +45,7 @@ const QueueRepo = {
     return {
       ingest_id: ingestId,
       received_at: receivedAt,
+      sequence_id: sequenceId,
       row_number: rowNum
     };
   },
@@ -81,9 +84,31 @@ const QueueRepo = {
   },
   
   /**
+   * Generate a monotonically increasing sequence ID for ingest ordering.
+   * @returns {number} Sequence ID
+   */
+  _nextSequenceId_: function() {
+    const nowMs = Date.now();
+    const sheet = sheet_(SHEETS.INGEST_QUEUE, true);
+    if (!sheet) return nowMs;
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return nowMs;
+    
+    const colIdx = getColIndex_(SHEETS.INGEST_QUEUE, 'sequence_id');
+    if (colIdx === -1) return nowMs;
+    
+    const lastValue = sheet.getRange(lastRow, colIdx + 1).getValue();
+    const lastSeq = Number(lastValue);
+    if (isNaN(lastSeq)) return nowMs;
+    
+    return lastSeq >= nowMs ? lastSeq + 1 : nowMs;
+  },
+  
+  /**
    * Get pending items from queue (status = new)
-   * Ordered by received_at ASC for gap-free cursor processing
-   * @param {string} cursorValue - Last processed received_at|ingest_id (exclusive)
+   * Ordered by received_at/sequence_id ASC for gap-free cursor processing
+   * @param {string} cursorValue - Last processed received_at|sequence_id|ingest_id (exclusive)
    * @param {number} limit - Maximum items to return
    * @returns {Array<Object>} Pending queue items
    */
@@ -92,20 +117,24 @@ const QueueRepo = {
     
     const cursor = parseIngestCursor_(cursorValue);
     
-    // Filter: status=new AND (received_at, ingest_id) > cursor
+    // Filter: status=new AND (received_at, sequence_id, ingest_id) > cursor
     let pending = allData.filter(row => {
       const isNew = row.status === INGEST_STATUS.NEW;
       if (!cursorValue) return isNew;
-      const rowCursor = { received_at: row.received_at || '', ingest_id: row.ingest_id || '' };
+      const rowCursor = {
+        received_at: row.received_at || '',
+        sequence_id: row.sequence_id || '',
+        ingest_id: row.ingest_id || ''
+      };
       const afterCursor = compareIngestCursor_(rowCursor, cursor) === 1;
       return isNew && afterCursor;
     });
     
-    // Sort by (received_at, ingest_id) ASC (gap-free requirement)
+    // Sort by (received_at, sequence_id, ingest_id) ASC (gap-free requirement)
     pending.sort((a, b) => {
       return compareIngestCursor_(
-        { received_at: a.received_at || '', ingest_id: a.ingest_id || '' },
-        { received_at: b.received_at || '', ingest_id: b.ingest_id || '' }
+        { received_at: a.received_at || '', sequence_id: a.sequence_id || '', ingest_id: a.ingest_id || '' },
+        { received_at: b.received_at || '', sequence_id: b.sequence_id || '', ingest_id: b.ingest_id || '' }
       );
     });
     
@@ -149,8 +178,9 @@ const QueueRepo = {
    * @param {number} rowIndex - Row number (1-based)
    * @param {Object} item - Original queue item
    * @param {string} errorMsg - Error message
+   * @param {string} errorType - Error type (permanent/transient)
    */
-  markFailed: function(rowIndex, item, errorMsg) {
+  markFailed: function(rowIndex, item, errorMsg, errorType) {
     this.updateStatus(rowIndex, INGEST_STATUS.FAILED, errorMsg);
     
     // Insert to DLQ (COL2 = ingest_id as per canonical schema)
@@ -158,7 +188,11 @@ const QueueRepo = {
       created_at: nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE)),
       ingest_id: item.ingest_id,
       source_ref_id: item.source_ref_id || '',
-      error_json: JSON.stringify({ message: errorMsg, timestamp: new Date().toISOString() }),
+      error_json: JSON.stringify({
+        message: errorMsg,
+        timestamp: new Date().toISOString(),
+        error_type: errorType || 'transient'
+      }),
       retry_count: 0,
       last_retry_at: ''
     };

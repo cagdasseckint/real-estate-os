@@ -78,7 +78,7 @@ const CURSORS = {
  */
 const CANONICAL_HEADERS = {
   INGEST_QUEUE: [
-    'status', 'ingest_id', 'received_at', 'ingest_type', 'payload_json',
+    'status', 'ingest_id', 'received_at', 'sequence_id', 'ingest_type', 'payload_json',
     'source', 'source_ref_id', 'idempotency_key', 'error', 'processed_at'
   ],
   
@@ -229,6 +229,16 @@ const CANONICAL_HEADERS = {
   CONVERSION_QUEUE: [
     'conversion_id', 'gclid', 'event_type', 'event_value',
     'status', 'error', 'created_at', 'processed_at'
+  ],
+  
+  DAILY_SNAPSHOT: [
+    'snapshot_date', 'run_at', 'leads_created', 'deals_created',
+    'conversion_rate', 'first_touch_count', 'avg_first_touch_minutes'
+  ],
+  
+  WEEKLY_SUMMARY: [
+    'week_start', 'week_end', 'run_at', 'leads_created', 'deals_created',
+    'conversion_rate', 'first_touch_count', 'avg_first_touch_minutes'
   ],
   
   SMOKE_TEST_LOG: [

@@ -25,7 +25,7 @@ CB-OS, Google Apps Script + Google Sheets tabanlı bir emlak operasyon işletim 
 Bu sıra “locked” olup değiştirilemez; trigger kurulumu Apps Script üzerinde manuel yapılır.【F:app/cb-os/scripts/17_Orchestrator.gs†L1-L218】
 
 ### 2.2 Ingest İşleme (Queue → SoT)
-- Kuyrukta `status=new` olan kayıtlar cursor’a göre (received_at + ingest_id) sıralı alınır.
+- Kuyrukta `status=new` olan kayıtlar cursor’a göre (received_at + sequence_id + ingest_id) sıralı alınır.
 - JSON parse hatası veya handler hatasında **DLQ**’ya atılır ve cursor ilerlemez.
 - Başarılı işlemde status “completed” olur, cursor güncellenir.
 - Idempotency key varsa önce `DedupRepo.insertIfNotExists` yapılır; duplicate ise item “skipped” olur.【F:app/cb-os/scripts/04_QueueRepo.gs†L1-L179】【F:app/cb-os/scripts/13_IngestProcessJob.gs†L1-L180】

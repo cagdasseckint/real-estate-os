@@ -40,13 +40,26 @@ function bootstrapWorkflowSheets_() {
  * Trigger handler for form submit
  */
 function onFormSubmit(e) {
-  if (!cfg_('MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED)) return;
   const payload = e && e.namedValues ? e.namedValues : {};
-  runWorkflowEngine_('FORM_SUBMIT', {
-    entity_type: 'FORM',
-    entity_id: String(new Date().getTime()),
-    payload: payload
-  });
+  if (cfg_('MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED)) {
+    runWorkflowEngine_('FORM_SUBMIT', {
+      entity_type: 'FORM',
+      entity_id: String(new Date().getTime()),
+      payload: payload
+    });
+  }
+  
+  if (cfg_('MODULES_LEAD_CAPTURE_ENABLED', DEFAULTS.MODULES_LEAD_CAPTURE_ENABLED)) {
+    if (typeof leadOnFormSubmit === 'function') {
+      leadOnFormSubmit(e);
+    }
+  }
+  
+  if (cfg_('BOOKING_MODE', DEFAULTS.BOOKING_MODE) !== 'manual') {
+    if (typeof bookingOnFormSubmit === 'function') {
+      bookingOnFormSubmit(e);
+    }
+  }
 }
 
 /**

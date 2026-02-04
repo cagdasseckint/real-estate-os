@@ -31,6 +31,12 @@ const DEFAULTS = {
   DRIVE_SHARE_AUDIT_ENABLED: true,
   WINBACK_ENABLED: true,
   CLOSE_CHECKLIST_ENABLED: true,
+  ARCHIVE_ENABLED: true,
+  ARCHIVE_THRESHOLD_INGEST_QUEUE: 10000,
+  ARCHIVE_THRESHOLD_EVENTS: 10000,
+  ARCHIVE_SPREADSHEET_ID: '',
+  CALENDAR_SYNC_LOOKBACK_DAYS: 30,
+  CALENDAR_SYNC_LOOKAHEAD_DAYS: 90,
   EVENTS_APPEND_ONLY: true,
   TASKS_SOT: 'sheets',
   TASKS_PROVIDER: 'google_tasks',
@@ -77,6 +83,41 @@ function cfg_(key, defaultValue) {
   
   // Finally use provided default
   return defaultValue !== undefined ? defaultValue : null;
+}
+
+/**
+ * Persist configuration value to CONFIG sheet.
+ * @param {string} key - Configuration key
+ * @param {*} value - Value to store
+ * @param {string} description - Optional description
+ */
+function setConfigValue_(key, value, description) {
+  if (!key) return;
+  const sheet = sheet_(SHEETS.CONFIG, false);
+  if (!sheet) return;
+  
+  const data = sheet.getDataRange().getValues();
+  let rowIdx = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === key) {
+      rowIdx = i + 1;
+      break;
+    }
+  }
+  
+  const descValue = description !== undefined ? description : (rowIdx > 0 ? data[rowIdx - 1][2] : '');
+  if (rowIdx > 0) {
+    sheet.getRange(rowIdx, 2).setValue(value);
+    if (description !== undefined) {
+      sheet.getRange(rowIdx, 3).setValue(descValue || '');
+    }
+  } else {
+    sheet.appendRow([key, value, descValue || '']);
+  }
+  
+  if (_configCache) {
+    _configCache[key] = value;
+  }
 }
 
 /**

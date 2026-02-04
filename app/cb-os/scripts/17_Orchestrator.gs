@@ -99,24 +99,88 @@ function calendar_sync_job(ctx) {
   };
   
   try {
+    const calendar = CalendarApp.getDefaultCalendar();
+    const lookbackDays = cfg_('CALENDAR_SYNC_LOOKBACK_DAYS', DEFAULTS.CALENDAR_SYNC_LOOKBACK_DAYS);
+    const lookaheadDays = cfg_('CALENDAR_SYNC_LOOKAHEAD_DAYS', DEFAULTS.CALENDAR_SYNC_LOOKAHEAD_DAYS);
+    const now = new Date();
+    const rangeStart = new Date(now);
+    rangeStart.setDate(rangeStart.getDate() - Number(lookbackDays || 0));
+    const rangeEnd = new Date(now);
+    rangeEnd.setDate(rangeEnd.getDate() + Number(lookaheadDays || 0));
+    const cursorBeforeMs = cursorBefore ? parseCbTimeMs_(cursorBefore) : null;
+    
     // Get appointments without google_event_id
     const apptData = getSheetData_(SHEETS.APPOINTMENTS);
     const pending = apptData.filter(a => !a.google_event_id && a.status === 'scheduled');
     
     for (const appt of pending) {
       try {
-        // In V1, we just log that we would sync
-        // Actual Calendar API integration would go here
-        Logger.log('CALENDAR_SYNC | Would sync appointment: ' + appt.appointment_id);
-        result.skipped++;
+        const scheduledAt = parseIso_(appt.scheduled_at) || new Date(appt.scheduled_at);
+        if (!scheduledAt || isNaN(scheduledAt.getTime())) {
+          Logger.log('CALENDAR_SYNC | Invalid scheduled_at: ' + appt.appointment_id);
+          result.skipped++;
+          continue;
+        }
         
-        // For full implementation:
-        // const event = CalendarApp.getDefaultCalendar().createEvent(...);
-        // updateRow_(SHEETS.APPOINTMENTS, appt._rowIndex, { google_event_id: event.getId() });
+        const durationMinutes = Number(appt.duration_minutes) || 30;
+        const endAt = new Date(scheduledAt.getTime() + durationMinutes * 60000);
+        const title = appt.meeting_type ? 'CB-OS: ' + appt.meeting_type : 'CB-OS Appointment';
+        const event = calendar.createEvent(title, scheduledAt, endAt, {
+          location: appt.location || '',
+          description: appt.notes || ''
+        });
+        
+        updateRow_(SHEETS.APPOINTMENTS, appt._rowIndex, {
+          google_event_id: event.getId()
+        });
+        
+        result.synced++;
         
       } catch (e) {
         Logger.log('CALENDAR_SYNC | Error syncing ' + appt.appointment_id + ': ' + e.message);
         result.errors++;
+      }
+    }
+    
+    // Pull updates from calendar to sheet
+    const events = calendar.getEvents(rangeStart, rangeEnd);
+    const apptsByEventId = {};
+    apptData.forEach(appt => {
+      if (appt.google_event_id) {
+        apptsByEventId[appt.google_event_id] = appt;
+      }
+    });
+    
+    for (const event of events) {
+      const eventId = event.getId();
+      const appt = apptsByEventId[eventId];
+      if (!appt) continue;
+      
+      const lastUpdated = event.getLastUpdated();
+      if (cursorBeforeMs && lastUpdated && lastUpdated.getTime() <= cursorBeforeMs) {
+        continue;
+      }
+      
+      const start = event.getStartTime();
+      const end = event.getEndTime();
+      const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+      
+      updateRow_(SHEETS.APPOINTMENTS, appt._rowIndex, {
+        scheduled_at: formatIsoWithOffset_(start, cfg_('TIMEZONE', DEFAULTS.TIMEZONE)),
+        duration_minutes: durationMinutes,
+        location: event.getLocation() || appt.location || '',
+        notes: event.getDescription() || appt.notes || ''
+      });
+      
+      result.synced++;
+    }
+    
+    // Mark appointments with missing events as cancelled
+    for (const appt of apptData) {
+      if (!appt.google_event_id) continue;
+      const event = calendar.getEventById(appt.google_event_id);
+      if (!event && appt.status === 'scheduled') {
+        updateRow_(SHEETS.APPOINTMENTS, appt._rowIndex, { status: 'cancelled' });
       }
     }
     
@@ -284,6 +348,8 @@ function guardrails_job(ctx) {
     
     // Ops dashboard snapshot
     updateOpsDashboard_();
+    updateDailySnapshot_();
+    archiveOperationalTables_();
     
     // Drive share audit
     runDriveShareAudit_();
