@@ -25,7 +25,9 @@ function dlq_retry_job(ctx) {
   // Filter items eligible for retry (retry_count < max)
   const eligible = dlqData.filter(row => {
     const retryCount = parseInt(row.retry_count) || 0;
-    return retryCount < maxRetry;
+    const errorObj = parseJsonSafe_(row.error_json) || {};
+    const errorType = String(errorObj.error_type || '').toLowerCase();
+    return retryCount < maxRetry && errorType !== 'permanent';
   });
   
   // Sort by created_at ASC
@@ -119,9 +121,11 @@ function getDLQStats_() {
   
   for (const item of dlqData) {
     const retryCount = parseInt(item.retry_count) || 0;
+    const errorObj = parseJsonSafe_(item.error_json) || {};
+    const errorType = String(errorObj.error_type || '').toLowerCase();
     if (retryCount >= maxRetry) {
       maxRetryReached++;
-    } else {
+    } else if (errorType !== 'permanent') {
       pending++;
     }
   }

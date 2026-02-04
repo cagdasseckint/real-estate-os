@@ -96,7 +96,9 @@ function bootstrapSheets_() {
     SHEETS.PRICE_CHANGES,
     SHEETS.MARKETING_ASSETS,
     SHEETS.CONSENTS,
-    SHEETS.CONVERSION_QUEUE
+    SHEETS.CONVERSION_QUEUE,
+    SHEETS.DAILY_SNAPSHOT,
+    SHEETS.WEEKLY_SUMMARY
   ];
   
   for (const sheetName of requiredSheets) {
@@ -252,6 +254,12 @@ function seedDefaultConfig_() {
     ['DRIVE_SHARE_AUDIT_ENABLED', DEFAULTS.DRIVE_SHARE_AUDIT_ENABLED, 'Enable drive share audit reporting'],
     ['WINBACK_ENABLED', DEFAULTS.WINBACK_ENABLED, 'Enable win-back sequences for lost deals'],
     ['CLOSE_CHECKLIST_ENABLED', DEFAULTS.CLOSE_CHECKLIST_ENABLED, 'Enable close checklist tasks'],
+    ['ARCHIVE_ENABLED', DEFAULTS.ARCHIVE_ENABLED, 'Enable sheet archival for operational tables'],
+    ['ARCHIVE_THRESHOLD_INGEST_QUEUE', DEFAULTS.ARCHIVE_THRESHOLD_INGEST_QUEUE, 'Row threshold for INGEST_QUEUE archival'],
+    ['ARCHIVE_THRESHOLD_EVENTS', DEFAULTS.ARCHIVE_THRESHOLD_EVENTS, 'Row threshold for EVENTS archival'],
+    ['ARCHIVE_SPREADSHEET_ID', DEFAULTS.ARCHIVE_SPREADSHEET_ID, 'Target spreadsheet ID for archives (auto-created if blank)'],
+    ['CALENDAR_SYNC_LOOKBACK_DAYS', DEFAULTS.CALENDAR_SYNC_LOOKBACK_DAYS, 'Calendar sync lookback window in days'],
+    ['CALENDAR_SYNC_LOOKAHEAD_DAYS', DEFAULTS.CALENDAR_SYNC_LOOKAHEAD_DAYS, 'Calendar sync lookahead window in days'],
     ['SCHEMA_MODE', DEFAULTS.SCHEMA_MODE, 'Schema mode: GREENFIELD or SCHEMA_LOCKED'],
     ['DLQ_MAX_RETRY', DEFAULTS.DLQ_MAX_RETRY, 'Maximum DLQ retry attempts'],
     ['SMOKE_CHECKED_BY', DEFAULTS.SMOKE_CHECKED_BY, 'Default smoke test checked_by'],
@@ -408,4 +416,81 @@ function updateRow_(sheetName, rowIndex, updates) {
       sheet.getRange(rowIndex, colIdx + 1).setValue(value);
     }
   }
+}
+
+/**
+ * Get or create the archive spreadsheet ID.
+ * @returns {string|null} Spreadsheet ID or null if disabled.
+ */
+function getArchiveSpreadsheetId_() {
+  if (!cfg_('ARCHIVE_ENABLED', DEFAULTS.ARCHIVE_ENABLED)) return null;
+  let archiveId = cfg_('ARCHIVE_SPREADSHEET_ID', DEFAULTS.ARCHIVE_SPREADSHEET_ID);
+  if (archiveId) return archiveId;
+  
+  const ss = SpreadsheetApp.create('CB-OS Archive');
+  archiveId = ss.getId();
+  setConfigValue_('ARCHIVE_SPREADSHEET_ID', archiveId, 'Auto-created archive spreadsheet ID');
+  return archiveId;
+}
+
+/**
+ * Ensure a sheet exists inside archive spreadsheet with canonical headers.
+ * @param {Spreadsheet} archiveSs - Archive spreadsheet instance
+ * @param {string} sheetName - Sheet name to ensure
+ * @returns {Sheet|null} Archive sheet
+ */
+function ensureArchiveSheet_(archiveSs, sheetName) {
+  if (!archiveSs) return null;
+  let sheet = archiveSs.getSheetByName(sheetName);
+  if (sheet) return sheet;
+  
+  sheet = archiveSs.insertSheet(sheetName);
+  const headers = CANONICAL_HEADERS[sheetName] || [];
+  if (headers.length > 0) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+  }
+  return sheet;
+}
+
+/**
+ * Archive oldest rows for a sheet when row threshold is exceeded.
+ * @param {string} sheetName - Source sheet name
+ * @param {number} threshold - Max number of data rows to keep
+ * @returns {Object} Archive result
+ */
+function archiveRowsIfNeeded_(sheetName, threshold) {
+  if (!cfg_('ARCHIVE_ENABLED', DEFAULTS.ARCHIVE_ENABLED)) {
+    return { archived: 0, skipped: true, reason: 'ARCHIVE_DISABLED' };
+  }
+  
+  const sheet = sheet_(sheetName, false);
+  if (!sheet) return { archived: 0, skipped: true, reason: 'SHEET_MISSING' };
+  
+  const dataRows = sheet.getLastRow() - 1;
+  if (dataRows <= (threshold || 0)) {
+    return { archived: 0, skipped: true, reason: 'BELOW_THRESHOLD' };
+  }
+  
+  const rowsToArchive = dataRows - threshold;
+  if (rowsToArchive <= 0) return { archived: 0, skipped: true, reason: 'NO_ROWS' };
+  
+  const archiveId = getArchiveSpreadsheetId_();
+  if (!archiveId) return { archived: 0, skipped: true, reason: 'ARCHIVE_ID_MISSING' };
+  const archiveSs = SpreadsheetApp.openById(archiveId);
+  const archiveSheet = ensureArchiveSheet_(archiveSs, sheetName);
+  if (!archiveSheet) return { archived: 0, skipped: true, reason: 'ARCHIVE_SHEET_MISSING' };
+  
+  const columnCount = sheet.getLastColumn();
+  const sourceRange = sheet.getRange(2, 1, rowsToArchive, columnCount);
+  const values = sourceRange.getValues();
+  
+  const archiveStartRow = archiveSheet.getLastRow() + 1;
+  archiveSheet.getRange(archiveStartRow, 1, values.length, values[0].length).setValues(values);
+  
+  sheet.deleteRows(2, rowsToArchive);
+  
+  Logger.log('ARCHIVE | ' + sheetName + ' archived rows=' + rowsToArchive + ' to spreadsheet=' + archiveId);
+  
+  return { archived: rowsToArchive, skipped: false };
 }

@@ -86,7 +86,7 @@ function runSmokeTests() {
 /**
  * Test 1: Deterministic enqueue ordering
  * A enqueue -> sleep >= 1000ms -> B enqueue
- * Verify A.received_at < B.received_at
+ * Verify A cursor < B cursor
  */
 function test_deterministicEnqueue_() {
   const testName = 'deterministic_enqueue_ordering';
@@ -101,8 +101,9 @@ function test_deterministicEnqueue_() {
       idempotency_key: 'smoke_A_' + Date.now()
     });
     const receivedAtA = itemA.received_at;
+    const sequenceA = itemA.sequence_id;
     
-    Logger.log('SMOKE_TEST | ' + testName + ' | A enqueued: ' + receivedAtA);
+    Logger.log('SMOKE_TEST | ' + testName + ' | A enqueued: ' + receivedAtA + ' seq=' + sequenceA);
     
     // Sleep >= 1000ms (required by Appendix A)
     Utilities.sleep(1100);
@@ -115,16 +116,20 @@ function test_deterministicEnqueue_() {
       idempotency_key: 'smoke_B_' + Date.now()
     });
     const receivedAtB = itemB.received_at;
+    const sequenceB = itemB.sequence_id;
     
-    Logger.log('SMOKE_TEST | ' + testName + ' | B enqueued: ' + receivedAtB);
+    Logger.log('SMOKE_TEST | ' + testName + ' | B enqueued: ' + receivedAtB + ' seq=' + sequenceB);
     
-    // Verify A < B
-    const passed = receivedAtA < receivedAtB;
+    // Verify A < B via cursor compare
+    const passed = compareIngestCursor_(
+      { received_at: receivedAtA, sequence_id: sequenceA, ingest_id: itemA.ingest_id },
+      { received_at: receivedAtB, sequence_id: sequenceB, ingest_id: itemB.ingest_id }
+    ) === -1;
     
-    logEvidence_('DETERMINISM', 'A=' + receivedAtA + ' | B=' + receivedAtB + ' | A<B=' + passed);
+    logEvidence_('DETERMINISM', 'A=' + receivedAtA + '/' + sequenceA + ' | B=' + receivedAtB + '/' + sequenceB + ' | A<B=' + passed);
     
     return logSmokeTest_(testName, passed, 
-                         'A=' + receivedAtA + ', B=' + receivedAtB + ', A<B=' + passed);
+                         'A=' + receivedAtA + '/' + sequenceA + ', B=' + receivedAtB + '/' + sequenceB + ', A<B=' + passed);
     
   } catch (e) {
     return logSmokeTest_(testName, false, 'Exception: ' + e.message);
@@ -182,6 +187,7 @@ function test_dlqInsert_() {
       status: INGEST_STATUS.NEW,
       ingest_id: testIngestId,
       received_at: now,
+      sequence_id: QueueRepo._nextSequenceId_(),
       ingest_type: 'invalid_type_for_test',
       payload_json: '{invalid json',  // Malformed JSON
       source: 'smoke_test',
@@ -216,9 +222,11 @@ function test_dlqInsert_() {
     const dlqEntry = dlqData.find(row => row.ingest_id === testIngestId);
     
     const passed = dlqEntry !== undefined;
+    const errorObj = dlqEntry ? (parseJsonSafe_(dlqEntry.error_json) || {}) : {};
+    const errorType = errorObj.error_type || '';
     
     logEvidence_('DLQ_INSERT', 'ingest_id=' + testIngestId + ' | found_in_dlq=' + passed + 
-                 ' | dlq_col2_header=' + dlqHeaders[1]);
+                 ' | dlq_col2_header=' + dlqHeaders[1] + ' | error_type=' + errorType);
     
     const result = logSmokeTest_(testName, passed, 
                                  'ingest_id=' + testIngestId + ' found in DLQ: ' + passed);
@@ -233,7 +241,7 @@ function test_dlqInsert_() {
 }
 
 /**
- * Test 4: Gap-free cursor (cursor should not advance on failure)
+ * Test 4: Gap-free cursor (cursor should not advance on transient failure)
  */
 function test_gapFreeCursor_() {
   const testName = 'gap_free_cursor';
@@ -244,26 +252,37 @@ function test_gapFreeCursor_() {
     const cursorBefore = getCursor_(CURSORS.INGEST_LAST_RECEIVED_AT);
     Logger.log('SMOKE_TEST | ' + testName + ' | Cursor before: ' + cursorBefore);
     
-    // The previous test should have caused a failure
+    // Enqueue a transient failure (missing task_id)
+    QueueRepo.enqueue({
+      ingest_type: INGEST_TYPES.TASK_UPDATE,
+      payload: {},
+      source: 'smoke_test',
+      idempotency_key: 'smoke_transient_' + Date.now()
+    });
+    
+    ingest_process_job(createJobContext_());
+    const cursorAfter = getCursor_(CURSORS.INGEST_LAST_RECEIVED_AT);
+    
     // Check that JOB_RUN_LOG contains the audit contract string
     const recentRuns = getRecentJobRuns_(5);
-    const failedRun = recentRuns.find(run => 
-      run.job_name === 'ingest_process_job' && 
+    const failedRun = recentRuns.find(run =>
+      run.job_name === 'ingest_process_job' &&
       (run.notes === AUDIT_CONTRACT_STRING || run.message?.includes('Failed'))
     );
     
     let passed = false;
     if (failedRun) {
       // Verify notes contains EXACT audit contract string
-      passed = failedRun.notes === AUDIT_CONTRACT_STRING;
+      passed = failedRun.notes === AUDIT_CONTRACT_STRING && cursorAfter === cursorBefore;
       Logger.log('SMOKE_TEST | ' + testName + ' | Found failed run with notes: ' + failedRun.notes);
     }
     
     logEvidence_('GAP_FREE', 'audit_string_match=' + passed + 
-                 ' | expected="' + AUDIT_CONTRACT_STRING + '"');
+                 ' | expected="' + AUDIT_CONTRACT_STRING + '"' +
+                 ' | cursor_before=' + cursorBefore + ' | cursor_after=' + cursorAfter);
     
     return logSmokeTest_(testName, passed, 
-                         'Audit contract string exact match: ' + passed);
+                         'Audit contract string exact match and cursor unchanged: ' + passed);
     
   } catch (e) {
     return logSmokeTest_(testName, false, 'Exception: ' + e.message);

@@ -25,10 +25,13 @@ function runAuditChecks() {
   // Check 2: received_at offset consistency (no mix)
   results.checks.push(audit_offsetConsistency_());
   
-  // Check 3: cursor order in JOB_RUN_LOG
+  // Check 3: sequence_id monotonicity
+  results.checks.push(audit_sequenceIdMonotonic_());
+  
+  // Check 4: cursor order in JOB_RUN_LOG
   results.checks.push(audit_cursorOrder_());
   
-  // Check 4: audit contract string exact match
+  // Check 5: audit contract string exact match
   results.checks.push(audit_contractStringExact_());
   
   // Determine NNO-1 result
@@ -69,6 +72,60 @@ function runAuditChecks() {
   });
   
   return results;
+}
+
+/**
+ * Audit Check: sequence_id monotonicity in INGEST_QUEUE
+ */
+function audit_sequenceIdMonotonic_() {
+  const checkName = 'sequence_id_monotonic';
+  Logger.log('AUDIT | ' + checkName + ' | START');
+  
+  const queueData = getSheetData_(SHEETS.INGEST_QUEUE);
+  let invalidCount = 0;
+  let nonMonotonic = 0;
+  const examples = [];
+  
+  let previous = null;
+  for (const row of queueData) {
+    const seq = Number(row.sequence_id);
+    if (!row.sequence_id || isNaN(seq)) {
+      invalidCount++;
+      if (examples.length < 3) {
+        examples.push('missing_or_invalid');
+      }
+      continue;
+    }
+    
+    if (previous) {
+      const compare = compareIngestCursor_(
+        { received_at: previous.received_at || '', sequence_id: previous.sequence_id || '', ingest_id: previous.ingest_id || '' },
+        { received_at: row.received_at || '', sequence_id: row.sequence_id || '', ingest_id: row.ingest_id || '' }
+      );
+      if (compare === 1) {
+        nonMonotonic++;
+        if (examples.length < 3) {
+          examples.push(previous.ingest_id + '>' + row.ingest_id);
+        }
+      }
+    }
+    
+    previous = row;
+  }
+  
+  const passed = invalidCount === 0 && nonMonotonic === 0;
+  
+  Logger.log('AUDIT | ' + checkName + ' | invalid=' + invalidCount + ', non_monotonic=' + nonMonotonic);
+  
+  return {
+    name: checkName,
+    result: passed ? 'PASS' : 'FAIL',
+    details: {
+      invalid: invalidCount,
+      non_monotonic: nonMonotonic,
+      examples: examples
+    }
+  };
 }
 
 /**

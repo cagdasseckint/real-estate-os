@@ -157,38 +157,53 @@ function isValidIsoFormat_(timestamp) {
 }
 
 /**
- * Build composite cursor value for ingest ordering (received_at + ingest_id)
+ * Build composite cursor value for ingest ordering (received_at + sequence_id + ingest_id)
  * @param {string} receivedAt - ISO timestamp
+ * @param {string|number} sequenceId - Monotonic sequence ID
  * @param {string} ingestId - Ingest ID
  * @returns {string} Composite cursor value
  */
-function buildIngestCursor_(receivedAt, ingestId) {
-  return (receivedAt || '') + '|' + (ingestId || '');
+function buildIngestCursor_(receivedAt, sequenceId, ingestId) {
+  return (receivedAt || '') + '|' + (sequenceId || '') + '|' + (ingestId || '');
 }
 
 /**
  * Parse composite cursor value into parts
  * @param {string} cursorValue - Cursor string
- * @returns {Object} Parsed cursor with received_at and ingest_id
+ * @returns {Object} Parsed cursor with received_at, sequence_id, ingest_id
  */
 function parseIngestCursor_(cursorValue) {
-  if (!cursorValue) return { received_at: '', ingest_id: '' };
+  if (!cursorValue) return { received_at: '', sequence_id: '', ingest_id: '' };
   const parts = String(cursorValue).split('|');
+  if (parts.length === 2) {
+    return {
+      received_at: parts[0] || '',
+      sequence_id: '',
+      ingest_id: parts[1] || ''
+    };
+  }
   return {
     received_at: parts[0] || '',
-    ingest_id: parts[1] || ''
+    sequence_id: parts[1] || '',
+    ingest_id: parts[2] || ''
   };
 }
 
 /**
  * Compare two ingest cursors
- * @param {Object} a - Cursor {received_at, ingest_id}
- * @param {Object} b - Cursor {received_at, ingest_id}
+ * @param {Object} a - Cursor {received_at, sequence_id, ingest_id}
+ * @param {Object} b - Cursor {received_at, sequence_id, ingest_id}
  * @returns {number} -1 if a < b, 0 if equal, 1 if a > b
  */
 function compareIngestCursor_(a, b) {
   const tsCompare = compareIso_(a.received_at, b.received_at);
   if (tsCompare !== 0) return tsCompare;
+  
+  const seqA = Number(a.sequence_id || 0);
+  const seqB = Number(b.sequence_id || 0);
+  if (seqA < seqB) return -1;
+  if (seqA > seqB) return 1;
+  
   if (a.ingest_id < b.ingest_id) return -1;
   if (a.ingest_id > b.ingest_id) return 1;
   return 0;

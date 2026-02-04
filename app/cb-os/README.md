@@ -52,6 +52,8 @@ appsscript.json    → Proje ayarları (manifest)
 3. Apps Script'te: Extensions → Apps Script
 4. Veya script.google.com'dan spreadsheet ID ile bağlayın
 
+> Daha detaylı kurulum ve `clasp` adımları için: `docs/GOOGLE_APPS_SCRIPT_DEPLOY.md`
+
 ### 5. Bootstrap Çalıştırma
 
 ```javascript
