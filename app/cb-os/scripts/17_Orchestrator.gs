@@ -20,6 +20,12 @@
  * @param {Object} e - Trigger event (optional)
  */
 function ORCH_15MIN(e) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) {
+    Logger.log('ORCH | Lock busy, skipping run');
+    return { skipped: true, reason: 'lock_busy' };
+  }
+  
   const ctx = createJobContext_();
   
   Logger.log('========== ORCH_15MIN START ==========');
@@ -60,6 +66,8 @@ function ORCH_15MIN(e) {
   } catch (e) {
     Logger.log('ORCH | FATAL ERROR: ' + e.message);
     results.error = e.message;
+  } finally {
+    lock.releaseLock();
   }
   
   results.completed_at = nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE));
