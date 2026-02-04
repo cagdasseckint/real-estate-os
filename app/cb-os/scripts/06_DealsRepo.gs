@@ -41,11 +41,33 @@ const DealsRepo = {
       notes: data.notes || '',
       docs_required: data.docs_required || '',
       parcel_present: data.parcel_present || '',
-      last_stage_change_at: now
+      last_stage_change_at: now,
+      lead_source: data.lead_source || data.source || '',
+      intent: data.intent || '',
+      budget: data.budget || 0,
+      region: data.region || '',
+      timing: data.timing || '',
+      utm_source: data.utm_source || '',
+      utm_medium: data.utm_medium || '',
+      utm_campaign: data.utm_campaign || '',
+      utm_term: data.utm_term || '',
+      utm_content: data.utm_content || '',
+      gclid: data.gclid || '',
+      lost_reason: data.lost_reason || '',
+      attribution_campaign: data.attribution_campaign || data.utm_campaign || '',
+      doc_package_url: data.doc_package_url || ''
     };
     
     const rowNum = appendRow_(SHEETS.DEALS, deal);
     deal._rowIndex = rowNum;
+    
+    if (cfg_('DOC_PACKAGES_ENABLED', DEFAULTS.DOC_PACKAGES_ENABLED)) {
+      const packageInfo = createDocsPackageForDeal_(deal);
+      if (packageInfo && packageInfo.url) {
+        updateCell_(SHEETS.DEALS, rowNum, 'doc_package_url', packageInfo.url);
+        deal.doc_package_url = packageInfo.url;
+      }
+    }
     
     Logger.log('DEALS | Created: ' + dealId + ' type=' + dealType + ' stage=' + deal.stage);
     return deal;
@@ -118,6 +140,8 @@ const DealsRepo = {
     
     const oldStage = deal.stage;
     this.update(dealId, { stage: newStage });
+    
+    applyStageAutomations_(deal, oldStage, newStage);
     
     // Log stage change event
     EventsRepo.append({
