@@ -184,6 +184,9 @@ function getWorkbook_() {
     return SpreadsheetApp.openById(spreadsheetId);
   }
 
-  throw new Error('No active spreadsheet. Bind the script to a spreadsheet or set script property CB_OS_SPREADSHEET_ID.');
+  const created = SpreadsheetApp.create('CB-OS');
+  scriptProps.setProperty('CB_OS_SPREADSHEET_ID', created.getId());
+  Logger.log('WORKBOOK | Created new spreadsheet and stored CB_OS_SPREADSHEET_ID.');
+  return created;
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent
