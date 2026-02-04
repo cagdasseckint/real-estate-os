@@ -56,7 +56,7 @@ const QueueRepo = {
     const timezone = cfg_('TIMEZONE', DEFAULTS.TIMEZONE);
     const now = new Date();
     let nextIso = formatIsoWithOffset_(now, timezone);
-    const sheet = sheet_(SHEETS.INGEST_QUEUE, true);
+    const sheet = sheet_(SHEETS.INGEST_QUEUE, false);
     if (!sheet) return nextIso;
     
     const lastRow = sheet.getLastRow();
@@ -73,7 +73,7 @@ const QueueRepo = {
     if (lastMs === null || nowMs === null) return nextIso;
     
     if (lastMs >= nowMs) {
-      const bumped = new Date(lastMs + 1000);
+      const bumped = new Date(lastMs + 1);
       nextIso = formatIsoWithOffset_(bumped, timezone);
     }
     

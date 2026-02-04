@@ -93,7 +93,7 @@ function logSmokeTest_(testName, passed, notes) {
   Logger.log(logLine);
   
   // Optionally write to SMOKE_TEST_LOG sheet
-  const logSheet = sheet_(SHEETS.SMOKE_TEST_LOG, true);
+  const logSheet = sheet_(SHEETS.SMOKE_TEST_LOG, false);
   if (logSheet) {
     appendRow_(SHEETS.SMOKE_TEST_LOG, {
       run_at: nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE)),

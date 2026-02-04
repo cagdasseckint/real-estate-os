@@ -63,6 +63,7 @@ function bootstrapSheets_() {
     SHEETS.INGEST_QUEUE,
     SHEETS.DLQ,
     SHEETS.JOB_RUN_LOG,
+    SHEETS.SMOKE_TEST_LOG,
     SHEETS.CONTACTS,
     SHEETS.DEALS,
     SHEETS.TASKS,
@@ -349,7 +350,12 @@ function getSheetData_(sheetName) {
  * @returns {number} New row number (1-based)
  */
 function appendRow_(sheetName, rowData) {
-  const sheet = sheet_(sheetName, true);
+  const sheet = sheet_(sheetName, false);
+  if (!sheet) {
+    const message = 'APPEND_ROW | Sheet not found: ' + sheetName;
+    Logger.log(message);
+    throw new Error(message);
+  }
   const actualHeaders = sheet.getLastColumn() > 0
     ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
     : [];
