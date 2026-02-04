@@ -64,12 +64,67 @@ function runSmokeTests() {
              ' | risk_flags=' + riskFlagsStr + ' | checked_by=' + results.smoke_checked_by);
   
   // Dump sheet evidence
-  dumpSheetEvidence_(SHEETS.INGEST_QUEUE, 1, 10);
-  dumpSheetEvidence_(SHEETS.DLQ, 1, 5);
-  dumpSheetEvidence_(SHEETS.DEDUP_KEYS, 1, 5);
-  dumpSheetEvidence_(SHEETS.EVENTS, 1, 5);
+  dumpSheetEvidenceSafe_(SHEETS.INGEST_QUEUE, 1, 10);
+  dumpSheetEvidenceSafe_(SHEETS.DLQ, 1, 5);
+  dumpSheetEvidenceSafe_(SHEETS.DEDUP_KEYS, 1, 5);
+  dumpSheetEvidenceSafe_(SHEETS.EVENTS, 1, 5);
   
   return results;
+}
+
+/**
+ * Safely log smoke test result even if logSmokeTest_ is missing.
+ * @param {string} testName - Name of the test
+ * @param {boolean} passed - Whether test passed
+ * @param {string} notes - Test notes
+ * @returns {Object} Test result object
+ */
+function logSmokeTestSafe_(testName, passed, notes) {
+  if (typeof logSmokeTest_ === 'function') {
+    return logSmokeTest_(testName, passed, notes);
+  }
+  const result = passed ? 'PASS' : 'FAIL';
+  const logLine = 'SMOKE_TEST | ' + testName + ' | ' + result + ' | ' + (notes || '');
+  Logger.log(logLine);
+  return { testName: testName, result: result, notes: notes, risk_flags: [] };
+}
+
+/**
+ * Safely log evidence without throwing if logEvidence_ is missing.
+ * @param {string} evidenceType - Type of evidence
+ * @param {string} details - Evidence details
+ */
+function logEvidenceSafe_(evidenceType, details) {
+  if (typeof logEvidence_ === 'function') {
+    logEvidence_(evidenceType, details);
+    return;
+  }
+  Logger.log('EVIDENCE | ' + evidenceType + ' | ' + details);
+}
+
+/**
+ * Safely dump sheet evidence without throwing if dumpSheetEvidence_ is missing.
+ * @param {string} sheetName - Sheet to dump
+ * @param {number} startRow - Start row (1-based)
+ * @param {number} numRows - Number of rows to dump
+ */
+function dumpSheetEvidenceSafe_(sheetName, startRow, numRows) {
+  if (typeof dumpSheetEvidence_ === 'function') {
+    dumpSheetEvidence_(sheetName, startRow, numRows);
+    return;
+  }
+  Logger.log('EVIDENCE | SHEET_DUMP | ' + sheetName + ' | SKIPPED (missing dump helper)');
+}
+
+/**
+ * Build a job context for smoke tests without throwing if helper is missing.
+ * @returns {Object|null} Job context or null if unavailable
+ */
+function createJobContextSafe_() {
+  if (typeof createJobContext_ === 'function') {
+    return createJobContext_();
+  }
+  return null;
 }
 
 /**
@@ -115,13 +170,13 @@ function test_deterministicEnqueue_() {
       { received_at: receivedAtB, sequence_id: sequenceB, ingest_id: itemB.ingest_id }
     ) === -1;
     
-    logEvidence_('DETERMINISM', 'A=' + receivedAtA + '/' + sequenceA + ' | B=' + receivedAtB + '/' + sequenceB + ' | A<B=' + passed);
+    logEvidenceSafe_('DETERMINISM', 'A=' + receivedAtA + '/' + sequenceA + ' | B=' + receivedAtB + '/' + sequenceB + ' | A<B=' + passed);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'A=' + receivedAtA + '/' + sequenceA + ', B=' + receivedAtB + '/' + sequenceB + ', A<B=' + passed);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -145,14 +200,14 @@ function test_idempotencyDedup_() {
     
     const passed = result1.inserted === true && result2.inserted === false;
     
-    logEvidence_('IDEMPOTENCY', 'key=' + uniqueKey + ' | first=' + result1.inserted + 
+    logEvidenceSafe_('IDEMPOTENCY', 'key=' + uniqueKey + ' | first=' + result1.inserted + 
                  ' | second=' + result2.inserted);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'First=' + result1.inserted + ', Second=' + result2.inserted);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -189,13 +244,16 @@ function test_dlqInsert_() {
     Logger.log('SMOKE_TEST | ' + testName + ' | Queued invalid item: ' + testIngestId);
     
     // Run ingest process
-    const ctx = createJobContext_();
+    const ctx = createJobContextSafe_();
+    if (!ctx) {
+      return logSmokeTestSafe_(testName, false, 'Missing createJobContext_ helper');
+    }
     ingest_process_job(ctx);
     
     // Check DLQ for our item
     const dlqSheet = sheet_(SHEETS.DLQ, false);
     if (!dlqSheet) {
-      return logSmokeTest_(testName, false, 'DLQ sheet not found');
+      return logSmokeTestSafe_(testName, false, 'DLQ sheet not found');
     }
     
     // Verify DLQ header structure (COL2 should be ingest_id)
@@ -214,16 +272,16 @@ function test_dlqInsert_() {
     const errorObj = dlqEntry ? (parseJsonSafe_(dlqEntry.error_json) || {}) : {};
     const errorType = errorObj.error_type || '';
     
-    logEvidence_('DLQ_INSERT', 'ingest_id=' + testIngestId + ' | found_in_dlq=' + passed + 
+    logEvidenceSafe_('DLQ_INSERT', 'ingest_id=' + testIngestId + ' | found_in_dlq=' + passed + 
                  ' | dlq_col2_header=' + dlqHeaders[1] + ' | error_type=' + errorType);
     
-    const result = logSmokeTest_(testName, passed, 
+    const result = logSmokeTestSafe_(testName, passed, 
                                  'ingest_id=' + testIngestId + ' found in DLQ: ' + passed);
     result.risk_flags = riskFlags;
     return result;
     
   } catch (e) {
-    const result = logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    const result = logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
     result.risk_flags = riskFlags;
     return result;
   }
@@ -249,7 +307,11 @@ function test_gapFreeCursor_() {
       idempotency_key: 'smoke_transient_' + Date.now()
     });
     
-    ingest_process_job(createJobContext_());
+    const ctx = createJobContextSafe_();
+    if (!ctx) {
+      return logSmokeTestSafe_(testName, false, 'Missing createJobContext_ helper');
+    }
+    ingest_process_job(ctx);
     const cursorAfter = getCursor_(CURSORS.INGEST_LAST_RECEIVED_AT);
     
     // Check that JOB_RUN_LOG contains the audit contract string
@@ -266,15 +328,15 @@ function test_gapFreeCursor_() {
       Logger.log('SMOKE_TEST | ' + testName + ' | Found failed run with notes: ' + failedRun.notes);
     }
     
-    logEvidence_('GAP_FREE', 'audit_string_match=' + passed + 
+    logEvidenceSafe_('GAP_FREE', 'audit_string_match=' + passed + 
                  ' | expected="' + AUDIT_CONTRACT_STRING + '"' +
                  ' | cursor_before=' + cursorBefore + ' | cursor_after=' + cursorAfter);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'Audit contract string exact match and cursor unchanged: ' + passed);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -303,15 +365,15 @@ function test_landPayload_() {
                    normalized.deal.docs_required === 'tapu,imar,kadastro' &&
                    normalized.deal.parcel_present === 'yes';
     
-    logEvidence_('LAND_PAYLOAD', 'deal_type=' + normalized.deal.deal_type + 
+    logEvidenceSafe_('LAND_PAYLOAD', 'deal_type=' + normalized.deal.deal_type + 
                  ' | docs_required=' + normalized.deal.docs_required +
                  ' | parcel_present=' + normalized.deal.parcel_present);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'LAND fields normalized correctly: ' + passed);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -343,14 +405,14 @@ function test_eventsAppendOnly_() {
     
     const passed = found && !hasUpdate && !hasDelete;
     
-    logEvidence_('EVENTS_APPEND_ONLY', 'appended=' + found + 
+    logEvidenceSafe_('EVENTS_APPEND_ONLY', 'appended=' + found + 
                  ' | has_update=' + hasUpdate + ' | has_delete=' + hasDelete);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'Event appended: ' + found + ', No update/delete: ' + (!hasUpdate && !hasDelete));
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent
