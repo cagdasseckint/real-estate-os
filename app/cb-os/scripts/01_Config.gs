@@ -173,6 +173,17 @@ function refreshConfig_() {
  * @returns {Spreadsheet} Active spreadsheet
  */
 function getWorkbook_() {
-  return SpreadsheetApp.getActiveSpreadsheet();
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (active) return active;
+
+  const scriptProps = PropertiesService.getScriptProperties();
+  const spreadsheetId = scriptProps.getProperty('CB_OS_SPREADSHEET_ID')
+    || scriptProps.getProperty('SPREADSHEET_ID');
+
+  if (spreadsheetId) {
+    return SpreadsheetApp.openById(spreadsheetId);
+  }
+
+  throw new Error('No active spreadsheet. Bind the script to a spreadsheet or set script property CB_OS_SPREADSHEET_ID.');
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent
