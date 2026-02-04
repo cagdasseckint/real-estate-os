@@ -31,6 +31,12 @@ appsscript.json    → Proje ayarları (manifest)
 15_SmokeTests.gs   → Smoke testleri
 16_AuditTools.gs   → Audit araçları
 17_Orchestrator.gs → ORCH_15MIN
+18_Automations.gs  → Lead skorlama ve otomasyonlar
+19_CrmPipeline.gs  → CRM + Pipeline (Contacts/Opportunities)
+20_WorkflowEngine.gs → Workflow engine (WorkflowRules/WorkflowRuns)
+21_BookingSystem.gs → Booking system (Forms + Calendar)
+22_LeadCapture.gs → Lead capture (Forms -> CRM)
+23_ClientFiles.gs → Client files provisioning (Drive/Docs/Tasks)
 ```
 
 ### 3. appsscript.json Güncelleme
@@ -151,5 +157,11 @@ ORCH_15MIN();
     ├── 14_DLQRetryJob.gs         # DLQ retry
     ├── 15_SmokeTests.gs          # Smoke testler
     ├── 16_AuditTools.gs          # Audit araçları
-    └── 17_Orchestrator.gs        # Orchestrator
+    ├── 17_Orchestrator.gs        # Orchestrator
+    ├── 18_Automations.gs         # Lead skorlama ve otomasyonlar
+    ├── 19_CrmPipeline.gs         # CRM + Pipeline (Contacts/Opportunities)
+    ├── 20_WorkflowEngine.gs      # Workflow engine (WorkflowRules/WorkflowRuns)
+    ├── 21_BookingSystem.gs       # Booking system (Forms + Calendar)
+    ├── 22_LeadCapture.gs         # Lead capture (Forms -> CRM)
+    └── 23_ClientFiles.gs         # Client files provisioning (Drive/Docs/Tasks)
 ```

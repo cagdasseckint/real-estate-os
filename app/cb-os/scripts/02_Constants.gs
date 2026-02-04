@@ -35,6 +35,17 @@ const SHEETS = {
   // Config/Reference Tables
   CONFIG: 'CONFIG',
   STAGE_AUTOMATIONS: 'STAGE_AUTOMATIONS',
+  TASK_TEMPLATES: 'TASK_TEMPLATES',
+  LEAD_SCORES: 'LEAD_SCORES',
+  LEAD_SIGNALS: 'LEAD_SIGNALS',
+  EMAIL_DRAFTS: 'EMAIL_DRAFTS',
+  FOLLOWUP_SEQUENCES: 'FOLLOWUP_SEQUENCES',
+  DOC_PACKAGES: 'DOC_PACKAGES',
+  DOC_TEMPLATES: 'DOC_TEMPLATES',
+  OPS_DASHBOARD: 'OPS_DASHBOARD',
+  DRIVE_SHARE_AUDIT: 'DRIVE_SHARE_AUDIT',
+  ACCESS_INVENTORY: 'ACCESS_INVENTORY',
+  SECURITY_SOP: 'SECURITY_SOP',
   SMOKE_TEST_LOG: 'SMOKE_TEST_LOG',
   
   // Dashboard Tables
@@ -80,7 +91,10 @@ const CANONICAL_HEADERS = {
     'deal_id', 'created_at', 'updated_at', 'contact_id', 'deal_type', 'stage',
     'deal_value', 'currency', 'expected_close_date', 'assigned_to', 'property_type',
     'property_address', 'listing_price', 'commission_rate', 'notes',
-    'docs_required', 'parcel_present', 'last_stage_change_at'
+    'docs_required', 'parcel_present', 'last_stage_change_at', 'lead_source',
+    'intent', 'budget', 'region', 'timing', 'utm_source', 'utm_medium',
+    'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'lost_reason',
+    'attribution_campaign', 'doc_package_url'
   ],
   
   TASKS: [
@@ -114,7 +128,56 @@ const CANONICAL_HEADERS = {
   ],
   
   STAGE_AUTOMATIONS: [
-    'deal_type', 'from_stage', 'to_stage', 'trigger_condition', 'action_type', 'action_config'
+    'deal_type', 'from_stage', 'to_stage', 'trigger_condition', 'action_type',
+    'action_config', 'sla_days', 'task_template_id'
+  ],
+  
+  TASK_TEMPLATES: [
+    'template_id', 'name', 'entity_type', 'title', 'description', 'priority',
+    'due_in_days', 'due_in_hours', 'sequence_step', 'channel', 'draft_template_id'
+  ],
+  
+  LEAD_SCORES: [
+    'lead_id', 'contact_id', 'deal_id', 'score', 'score_breakdown', 'updated_at'
+  ],
+  
+  LEAD_SIGNALS: [
+    'signal_id', 'lead_id', 'contact_id', 'deal_id', 'signal_type',
+    'signal_value', 'weight', 'source', 'occurred_at'
+  ],
+  
+  EMAIL_DRAFTS: [
+    'draft_id', 'created_at', 'updated_at', 'contact_id', 'deal_id', 'to',
+    'subject', 'body', 'status', 'gmail_draft_id', 'task_id', 'scheduled_for'
+  ],
+  
+  FOLLOWUP_SEQUENCES: [
+    'sequence_id', 'name', 'deal_type', 'stage', 'steps_json', 'enabled'
+  ],
+  
+  DOC_PACKAGES: [
+    'deal_type', 'template_folder_id', 'template_doc_id', 'package_name'
+  ],
+  
+  DOC_TEMPLATES: [
+    'template_id', 'template_name', 'doc_id', 'output_folder_id',
+    'placeholders_json'
+  ],
+  
+  OPS_DASHBOARD: [
+    'run_at', 'ingest_pending', 'dlq_count', 'error_rate', 'cursor_drift_minutes'
+  ],
+  
+  DRIVE_SHARE_AUDIT: [
+    'run_at', 'folder_id', 'owner_email', 'sharing_state', 'issue'
+  ],
+  
+  ACCESS_INVENTORY: [
+    'system', 'account_owner', 'access_level', 'last_reviewed_at', 'notes'
+  ],
+  
+  SECURITY_SOP: [
+    'item_id', 'category', 'description', 'status', 'last_reviewed_at'
   ],
   
   SMOKE_TEST_LOG: [
@@ -127,6 +190,12 @@ const CANONICAL_HEADERS = {
  */
 const INGEST_TYPES = {
   NEW_LEAD: 'new_lead',
+  FORM_LEAD: 'form_lead',
+  GMAIL_SIGNAL: 'gmail_signal',
+  EMAIL_DRAFT_REQUEST: 'email_draft_request',
+  DOC_PACKAGE_CREATE: 'doc_package_create',
+  DOC_GENERATE_REQUEST: 'doc_generate_request',
+  STAGE_TRANSITION: 'stage_transition',
   CONTACT_UPDATE: 'contact_update',
   DEAL_UPDATE: 'deal_update',
   TASK_CREATE: 'task_create',

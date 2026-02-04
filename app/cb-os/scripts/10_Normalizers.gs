@@ -39,7 +39,18 @@ function normalizeNewLead_(payload) {
     listing_price: normalizeNumber_(payload.listing_price || payload.price),
     notes: payload.deal_notes || '',
     docs_required: payload.docs_required || '',
-    parcel_present: payload.parcel_present || payload.parcel || ''
+    parcel_present: payload.parcel_present || payload.parcel || '',
+    lead_source: payload.lead_source || payload.source || payload.channel || '',
+    intent: payload.intent || payload.interest || '',
+    budget: normalizeNumber_(payload.budget || payload.max_budget || payload.deal_value),
+    region: payload.region || payload.area || payload.district || '',
+    timing: payload.timing || payload.purchase_timeline || '',
+    utm_source: payload.utm_source || payload.utmSource || '',
+    utm_medium: payload.utm_medium || payload.utmMedium || '',
+    utm_campaign: payload.utm_campaign || payload.utmCampaign || '',
+    utm_term: payload.utm_term || payload.utmTerm || '',
+    utm_content: payload.utm_content || payload.utmContent || '',
+    gclid: payload.gclid || ''
   };
   
   // Validate required fields
