@@ -1,9 +1,4 @@
 /**
- * CB-OS V1.0 - 10_Normalizers.gs
- * Data normalization functions for ingest processing
- */
-
-/**
  * Normalize new lead payload into contact and deal data
  * @param {Object} payload - Raw payload from ingest
  * @returns {Object} Normalized data with contact and deal objects
@@ -257,3 +252,4 @@ function parseJsonSafe_(jsonStr) {
     return null;
   }
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

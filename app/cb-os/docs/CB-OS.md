@@ -1,4 +1,4 @@
-# CB-OS V1.0 – Tam Dokümantasyon (Tek Dosya)
+# CB-OS V1.3 – Tam Dokümantasyon (Tek Dosya)
 
 > Bu doküman, CB-OS çekirdeğindeki **tüm küçük/büyük özellikleri** (modüller, iş akışları, tablolar, otomasyonlar, test/audit süreçleri) koddan çıkarımla tek dosyada toplar. Kodda doğrudan görülen davranışlar ve varsayımlar esas alınmıştır.
 
@@ -193,3 +193,4 @@ Bu davranışların tamamı ilgili repo ve job fonksiyonları tarafından yürü
 ---
 
 > Not: Bu doküman, CB-OS’un mevcut kod durumunu temel alır. Ek modüller config flag’lerle kapalı/açık olabilir. (Örn. `MODULES_CRM_ENABLED`, `MODULES_WORKFLOW_ENABLED`, `MODULES_LEAD_CAPTURE_ENABLED`).【F:app/cb-os/scripts/01_Config.gs†L18-L62】
+Çağdaş Seçkin Tüfekci - Real Estate Agent

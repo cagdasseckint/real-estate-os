@@ -1,9 +1,4 @@
 /**
- * CB-OS V1.0 - 06_DealsRepo.gs
- * DEALS table operations with pipeline stage management
- */
-
-/**
  * DealsRepo namespace for DEALS operations
  */
 const DealsRepo = {
@@ -233,3 +228,4 @@ const DealsRepo = {
     return summary;
   }
 };
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

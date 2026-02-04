@@ -15,3 +15,4 @@ Real-estate-os, emlak danışmanları için Google ekosistemi üzerinde çalış
 - **Audit/Test**: Appendix A uyumlu smoke test + audit kontrolleri ve evidence pack üretimi desteklenir.【F:app/cb-os/scripts/15_SmokeTests.gs†L1-L319】【F:app/cb-os/scripts/16_AuditTools.gs†L1-L329】
 
 Detaylı mimari ve tüm modül açıklamaları için `app/cb-os/docs/` klasöründeki tek dokümana bakınız.
+Çağdaş Seçkin Tüfekci - Real Estate Agent

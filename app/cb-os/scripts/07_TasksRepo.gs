@@ -1,9 +1,4 @@
 /**
- * CB-OS V1.0 - 07_TasksRepo.gs
- * TASKS table operations with Google Tasks mirror support
- */
-
-/**
  * TasksRepo namespace for TASKS operations
  */
 const TasksRepo = {
@@ -247,3 +242,4 @@ function loadTaskTemplate_(templateName) {
   
   return templates[templateName] || null;
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

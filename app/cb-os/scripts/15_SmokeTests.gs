@@ -1,15 +1,4 @@
 /**
- * CB-OS V1.0 - 15_SmokeTests.gs
- * Smoke test suite - Appendix A FINAL compliant
- * 
- * HARD-RULE COMPLIANCE:
- * - No ops_log for smoke tests (Hard-rule #3: ops_log scope=audit_only only)
- * - Enqueue via QueueRepo.enqueue() where possible (Hard-rule #2)
- * - Logger RAW + SMOKE_TEST_LOG + sheet evidence
- * - DLQ kanıt standardı: COL2 = ingest_id (Hard-rule #6)
- */
-
-/**
  * Run all smoke tests
  * @returns {Object} Smoke test results
  */
@@ -364,3 +353,4 @@ function test_eventsAppendOnly_() {
     return logSmokeTest_(testName, false, 'Exception: ' + e.message);
   }
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

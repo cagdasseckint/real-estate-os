@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 03_SheetsRepo.gs
- * Sheet access, creation, and schema management
- * Handles GREENFIELD and SCHEMA_LOCKED modes
- */
-
-/**
  * Schema mode detection cache
  */
 let _schemaModeCache = {};
@@ -494,3 +488,4 @@ function archiveRowsIfNeeded_(sheetName, threshold) {
   
   return { archived: rowsToArchive, skipped: false };
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 13_IngestProcessJob.gs
- * Main ingest processing job - cursor-based, gap-free
- * Processes INGEST_QUEUE items and routes to appropriate handlers
- */
-
-/**
  * Process ingest queue items
  * Gap-free: stops on first failure, does not advance cursor
  * @param {Object} ctx - Job context with orch_run_id
@@ -517,3 +511,4 @@ function handleManualImport_(item, payload) {
   
   return { success: true };
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

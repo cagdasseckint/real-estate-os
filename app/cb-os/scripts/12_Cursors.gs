@@ -1,10 +1,4 @@
 /**
- * CB-OS V1.0 - 12_Cursors.gs
- * Cursor management for gap-free processing
- * Utility functions for ID generation and timestamp
- */
-
-/**
  * Cursor storage in CONFIG sheet
  * Key pattern: CURSOR_<cursor_name>
  */
@@ -242,3 +236,4 @@ function validateOffsetConsistency_(timestamps) {
     message: offsets.size > 1 ? 'Offset mix detected: ' + Array.from(offsets).join(', ') : 'OK'
   };
 }
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

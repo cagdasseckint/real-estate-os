@@ -1,8 +1,5 @@
 /**
- * CB-OS V1.0 - 02_Constants.gs
- * Sheet names, cursor keys, and canonical column definitions
- * 
- * V1.0 HARD-RULES REFERENCE:
+ * V1.3 HARD-RULES REFERENCE:
  * #1: ORCH_15MIN dışında trigger tasarlama yok
  * #2: SoT tablolara operatör manuel write yok; write-path yalnız job'lar üzerinden
  * #3: ops_log yalnız scope=audit_only; smoke için ops_log YOK
@@ -306,7 +303,7 @@ const INGEST_STATUS = {
 const AUDIT_CONTRACT_STRING = 'stopped_on_first_failure (gap-free cursor)';
 
 /**
- * Allowed ops_log scopes for V1.0
+ * Allowed ops_log scopes for V1.3
  */
 const ALLOWED_SCOPES = [
   'manual_fix_json',
@@ -318,7 +315,7 @@ const ALLOWED_SCOPES = [
 ];
 
 /**
- * Allowed risk_flags for V1.0
+ * Allowed risk_flags for V1.3
  */
 const ALLOWED_RISK_FLAGS = [
   'DLQ_INGEST_ID_COL2_ASSUMED',
@@ -330,3 +327,4 @@ const ALLOWED_RISK_FLAGS = [
   'CONTACTS_HEADER_MISMATCH',
   'DEALS_HEADER_MISMATCH'
 ];
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

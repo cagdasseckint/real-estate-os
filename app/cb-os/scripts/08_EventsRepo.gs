@@ -1,9 +1,4 @@
 /**
- * CB-OS V1.0 - 08_EventsRepo.gs
- * EVENTS table operations - append-only timeline
- */
-
-/**
  * EventsRepo namespace for EVENTS operations
  * EVENTS is append-only - no updates or deletes allowed
  */
@@ -150,3 +145,4 @@ const EventsRepo = {
     WINBACK_SCHEDULED: 'WINBACK_SCHEDULED'
   }
 };
+// Çağdaş Seçkin Tüfekci - Real Estate Agent

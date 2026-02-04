@@ -1,4 +1,4 @@
-# Google Apps Script'e Nasıl Yüklenir? (CB-OS V1.0)
+# Google Apps Script'e Nasıl Yüklenir? (CB-OS V1.3)
 
 Bu doküman CB-OS kodlarını Google Apps Script (GAS) ortamına yüklemek ve canlıya almak için adım adım rehberdir.
 
@@ -103,3 +103,4 @@ Not: `clasp push` öncesinde `scripts/` klasörünü GAS projesi ile eşleştirm
 ---
 
 Bu adımlar tamamlandığında CB-OS çalışır hale gelir. Opsiyonel modüller için `CONFIG` tablosundan ilgili bayrakları aktif edebilirsiniz.
+Çağdaş Seçkin Tüfekci - Real Estate Agent
