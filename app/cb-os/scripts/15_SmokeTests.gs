@@ -73,6 +73,23 @@ function runSmokeTests() {
 }
 
 /**
+ * Safely log smoke test result even if logSmokeTest_ is missing.
+ * @param {string} testName - Name of the test
+ * @param {boolean} passed - Whether test passed
+ * @param {string} notes - Test notes
+ * @returns {Object} Test result object
+ */
+function logSmokeTestSafe_(testName, passed, notes) {
+  if (typeof logSmokeTest_ === 'function') {
+    return logSmokeTest_(testName, passed, notes);
+  }
+  const result = passed ? 'PASS' : 'FAIL';
+  const logLine = 'SMOKE_TEST | ' + testName + ' | ' + result + ' | ' + (notes || '');
+  Logger.log(logLine);
+  return { testName: testName, result: result, notes: notes, risk_flags: [] };
+}
+
+/**
  * Test 1: Deterministic enqueue ordering
  * A enqueue -> sleep >= 1000ms -> B enqueue
  * Verify A cursor < B cursor
@@ -117,11 +134,11 @@ function test_deterministicEnqueue_() {
     
     logEvidence_('DETERMINISM', 'A=' + receivedAtA + '/' + sequenceA + ' | B=' + receivedAtB + '/' + sequenceB + ' | A<B=' + passed);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'A=' + receivedAtA + '/' + sequenceA + ', B=' + receivedAtB + '/' + sequenceB + ', A<B=' + passed);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -148,11 +165,11 @@ function test_idempotencyDedup_() {
     logEvidence_('IDEMPOTENCY', 'key=' + uniqueKey + ' | first=' + result1.inserted + 
                  ' | second=' + result2.inserted);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'First=' + result1.inserted + ', Second=' + result2.inserted);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -195,7 +212,7 @@ function test_dlqInsert_() {
     // Check DLQ for our item
     const dlqSheet = sheet_(SHEETS.DLQ, false);
     if (!dlqSheet) {
-      return logSmokeTest_(testName, false, 'DLQ sheet not found');
+      return logSmokeTestSafe_(testName, false, 'DLQ sheet not found');
     }
     
     // Verify DLQ header structure (COL2 should be ingest_id)
@@ -217,13 +234,13 @@ function test_dlqInsert_() {
     logEvidence_('DLQ_INSERT', 'ingest_id=' + testIngestId + ' | found_in_dlq=' + passed + 
                  ' | dlq_col2_header=' + dlqHeaders[1] + ' | error_type=' + errorType);
     
-    const result = logSmokeTest_(testName, passed, 
+    const result = logSmokeTestSafe_(testName, passed, 
                                  'ingest_id=' + testIngestId + ' found in DLQ: ' + passed);
     result.risk_flags = riskFlags;
     return result;
     
   } catch (e) {
-    const result = logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    const result = logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
     result.risk_flags = riskFlags;
     return result;
   }
@@ -270,11 +287,11 @@ function test_gapFreeCursor_() {
                  ' | expected="' + AUDIT_CONTRACT_STRING + '"' +
                  ' | cursor_before=' + cursorBefore + ' | cursor_after=' + cursorAfter);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'Audit contract string exact match and cursor unchanged: ' + passed);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -307,11 +324,11 @@ function test_landPayload_() {
                  ' | docs_required=' + normalized.deal.docs_required +
                  ' | parcel_present=' + normalized.deal.parcel_present);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'LAND fields normalized correctly: ' + passed);
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 
@@ -346,11 +363,11 @@ function test_eventsAppendOnly_() {
     logEvidence_('EVENTS_APPEND_ONLY', 'appended=' + found + 
                  ' | has_update=' + hasUpdate + ' | has_delete=' + hasDelete);
     
-    return logSmokeTest_(testName, passed, 
+    return logSmokeTestSafe_(testName, passed, 
                          'Event appended: ' + found + ', No update/delete: ' + (!hasUpdate && !hasDelete));
     
   } catch (e) {
-    return logSmokeTest_(testName, false, 'Exception: ' + e.message);
+    return logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
   }
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent
