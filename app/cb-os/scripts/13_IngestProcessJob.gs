@@ -104,7 +104,7 @@ function ingest_process_job(ctx) {
   }
   
   // Update cursor only if we processed something without failure
-  if (cursorAfter !== cursorBefore) {
+  if (!result.stopped_on_failure && cursorAfter !== cursorBefore) {
     setCursor_(CURSORS.INGEST_LAST_RECEIVED_AT, cursorAfter);
   }
   
