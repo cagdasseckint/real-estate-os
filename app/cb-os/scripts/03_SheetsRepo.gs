@@ -2,6 +2,8 @@
  * Schema mode detection cache
  */
 let _schemaModeCache = {};
+const SHEET_DATA_CACHE_TTL_MS = 5000;
+let _sheetDataCache = {};
 
 /**
  * Get or create a sheet by name
@@ -93,6 +95,7 @@ function bootstrapSheets_() {
     SHEETS.CONVERSION_QUEUE,
     SHEETS.DAILY_SNAPSHOT,
     SHEETS.WEEKLY_SUMMARY,
+    SHEETS.SMOKE_TEST_LOG,
     SHEETS.UNIFIED_TABLES,
     SHEETS.DASHBOARD_CHARTS,
     SHEETS.DASHBOARD_SUMMARY,
@@ -347,13 +350,19 @@ function seedSecuritySop_() {
 function getSheetData_(sheetName) {
   const sheet = sheet_(sheetName, false);
   if (!sheet) return [];
-  
+
+  const cached = _sheetDataCache[sheetName];
+  const now = Date.now();
+  if (cached && (now - cached.cached_at) < SHEET_DATA_CACHE_TTL_MS) {
+    return cached.rows;
+  }
+
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) return []; // Header only
-  
+
   const headers = data[0];
   const rows = [];
-  
+
   for (let i = 1; i < data.length; i++) {
     const row = {};
     for (let j = 0; j < headers.length; j++) {
@@ -362,7 +371,12 @@ function getSheetData_(sheetName) {
     row._rowIndex = i + 1; // 1-based sheet row number
     rows.push(row);
   }
-  
+
+  _sheetDataCache[sheetName] = {
+    cached_at: now,
+    rows: rows
+  };
+
   return rows;
 }
 
@@ -389,6 +403,7 @@ function appendRow_(sheetName, rowData) {
 
   const rowArray = headers.map(col => rowData[col] !== undefined ? rowData[col] : '');
   sheet.appendRow(rowArray);
+  invalidateSheetCache_(sheetName);
   
   return sheet.getLastRow();
 }
@@ -408,6 +423,7 @@ function updateCell_(sheetName, rowIndex, columnName, value) {
   if (colIdx === -1) return;
   
   sheet.getRange(rowIndex, colIdx + 1).setValue(value);
+  invalidateSheetCache_(sheetName);
 }
 
 /**
@@ -419,13 +435,31 @@ function updateCell_(sheetName, rowIndex, columnName, value) {
 function updateRow_(sheetName, rowIndex, updates) {
   const sheet = sheet_(sheetName, false);
   if (!sheet) return;
-  
+
+  const lastColumn = sheet.getLastColumn();
+  if (lastColumn === 0) return;
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const rowRange = sheet.getRange(rowIndex, 1, 1, lastColumn);
+  const rowValues = rowRange.getValues()[0];
+
   for (const [colName, value] of Object.entries(updates)) {
-    const colIdx = getColIndex_(sheetName, colName);
+    const colIdx = headers.indexOf(colName);
     if (colIdx !== -1) {
-      sheet.getRange(rowIndex, colIdx + 1).setValue(value);
+      rowValues[colIdx] = value;
     }
   }
+
+  rowRange.setValues([rowValues]);
+  invalidateSheetCache_(sheetName);
+}
+
+/**
+ * Invalidate cached sheet data.
+ * @param {string} sheetName - Sheet name
+ */
+function invalidateSheetCache_(sheetName) {
+  if (!sheetName) return;
+  delete _sheetDataCache[sheetName];
 }
 
 /**

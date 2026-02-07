@@ -116,6 +116,7 @@ const QueueRepo = {
     let pending = allData.filter(row => {
       const isNew = row.status === INGEST_STATUS.NEW;
       if (!cursorValue) return isNew;
+      if (!row.received_at || row.sequence_id === undefined || !row.ingest_id) return false;
       const rowCursor = {
         received_at: row.received_at || '',
         sequence_id: row.sequence_id || '',

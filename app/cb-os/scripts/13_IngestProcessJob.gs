@@ -5,7 +5,7 @@
  * @returns {Object} Job result summary
  */
 function ingest_process_job(ctx) {
-  ctx = ctx || (typeof createJobContext_ === 'function' ? createJobContext_() : createJobContextFallback_());
+  ctx = ctx || createJobContextSafe_();
   const jobName = 'ingest_process_job';
   
   // Get current cursor
@@ -132,70 +132,6 @@ function ingest_process_job(ctx) {
  * @param {string} notes - Notes (for failure: EXACT audit contract string)
  * @param {string} message - Additional message
  */
-function logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, notes, message) {
-  try {
-    if (typeof logJobRun_ === 'function') {
-      logJobRun_(ctx, jobName, cursorBefore, cursorAfter, notes, message);
-      return;
-    }
-  } catch (e) {
-    // Fallback to Logger below when logJobRun_ is unavailable.
-  }
-  Logger.log('JOB_RUN_LOG | ' + jobName + ' | cursor: ' + cursorBefore + ' -> ' + cursorAfter +
-             ' | notes=' + (notes || '') + ' | message=' + (message || ''));
-}
-
-/**
- * Safely log evidence without throwing if logEvidence_ is missing.
- * @param {string} evidenceType - Type of evidence
- * @param {string} details - Evidence details
- */
-function logEvidenceSafe_(evidenceType, details) {
-  if (typeof logEvidence_ === 'function') {
-    logEvidence_(evidenceType, details);
-    return;
-  }
-  Logger.log('EVIDENCE | ' + evidenceType + ' | ' + details);
-}
-
-/**
- * Safely dump sheet evidence without throwing if dumpSheetEvidence_ is missing.
- * @param {string} sheetName - Sheet to dump
- * @param {number} startRow - Start row (1-based)
- * @param {number} numRows - Number of rows to dump
- */
-function dumpSheetEvidenceSafe_(sheetName, startRow, numRows) {
-  if (typeof dumpSheetEvidence_ === 'function') {
-    dumpSheetEvidence_(sheetName, startRow, numRows);
-    return;
-  }
-  Logger.log('EVIDENCE | SHEET_DUMP | ' + sheetName + ' | SKIPPED (missing dump helper)');
-}
-
-/**
- * Build a fallback job context when createJobContext_ is missing.
- * @returns {Object} Job context
- */
-function createJobContextFallback_() {
-  const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
-    ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
-    : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
-  const batchSize = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
-    ? cfg_('ORCH_BATCH_SIZE', DEFAULTS.ORCH_BATCH_SIZE)
-    : 50;
-  const startedAt = typeof nowIso_ === 'function'
-    ? nowIso_(timezone)
-    : Utilities.formatDate(new Date(), timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
-  const orchRunId = typeof id_ === 'function'
-    ? id_()
-    : 'smoke_' + new Date().getTime();
-  return {
-    orch_run_id: orchRunId,
-    started_at: startedAt,
-    batch_size: batchSize
-  };
-}
-
 /**
  * Route ingest item to appropriate handler based on ingest_type
  * @param {Object} item - Queue item

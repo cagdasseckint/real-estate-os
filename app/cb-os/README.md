@@ -1,4 +1,4 @@
-# CB-OS V1.3 - Kurulum ve Kullanım Kılavuzu
+# CB-OS V1.4.0 - Kurulum ve Kullanım Kılavuzu
 
 ## Hızlı Başlangıç
 
@@ -31,7 +31,13 @@ appsscript.json    → Proje ayarları (manifest)
 15_SmokeTests.gs   → Smoke testleri
 16_AuditTools.gs   → Audit araçları
 17_Orchestrator.gs → ORCH_15MIN
-18_Automations.gs  → Lead skorlama ve otomasyonlar
+18_Automations.gs  → Otomasyon modül indexi
+18a_LeadScoring.gs → Lead skorlama
+18b_FollowupSequences.gs → Follow-up sequences
+18c_StageAutomations.gs → Stage otomasyonları
+18d_EmailDrafts.gs → Email draft queue
+18e_DocsAndWinback.gs → Docs paketleri + win-back
+18f_OpsAndGmail.gs → Ops dashboard + Gmail sinyalleri
 19_CrmPipeline.gs  → CRM + Pipeline (Contacts/Opportunities)
 20_WorkflowEngine.gs → Workflow engine (WorkflowRules/WorkflowRuns)
 21_BookingSystem.gs → Booking system (Forms + Calendar)
@@ -260,7 +266,13 @@ ORCH_15MIN();
     ├── 15_SmokeTests.gs          # Smoke testler
     ├── 16_AuditTools.gs          # Audit araçları
     ├── 17_Orchestrator.gs        # Orchestrator
-    ├── 18_Automations.gs         # Lead skorlama ve otomasyonlar
+    ├── 18_Automations.gs         # Otomasyon modül indexi
+    ├── 18a_LeadScoring.gs        # Lead skorlama
+    ├── 18b_FollowupSequences.gs  # Follow-up sequences
+    ├── 18c_StageAutomations.gs   # Stage otomasyonları
+    ├── 18d_EmailDrafts.gs        # Email draft queue
+    ├── 18e_DocsAndWinback.gs     # Docs paketleri + win-back
+    ├── 18f_OpsAndGmail.gs        # Ops dashboard + Gmail sinyalleri
     ├── 19_CrmPipeline.gs         # CRM + Pipeline (Contacts/Opportunities)
     ├── 20_WorkflowEngine.gs      # Workflow engine (WorkflowRules/WorkflowRuns)
     ├── 21_BookingSystem.gs       # Booking system (Forms + Calendar)

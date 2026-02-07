@@ -113,6 +113,55 @@ function logEvidence_(evidenceType, details) {
 }
 
 /**
+ * Safely log evidence without throwing if logEvidence_ is missing.
+ * @param {string} evidenceType - Type of evidence
+ * @param {string} details - Evidence details
+ */
+function logEvidenceSafe_(evidenceType, details) {
+  if (typeof logEvidence_ === 'function') {
+    logEvidence_(evidenceType, details);
+    return;
+  }
+  Logger.log('EVIDENCE | ' + evidenceType + ' | ' + details);
+}
+
+/**
+ * Safely dump sheet evidence without throwing if dumpSheetEvidence_ is missing.
+ * @param {string} sheetName - Sheet to dump
+ * @param {number} startRow - Start row (1-based)
+ * @param {number} numRows - Number of rows to dump
+ */
+function dumpSheetEvidenceSafe_(sheetName, startRow, numRows) {
+  if (typeof dumpSheetEvidence_ === 'function') {
+    dumpSheetEvidence_(sheetName, startRow, numRows);
+    return;
+  }
+  Logger.log('EVIDENCE | SHEET_DUMP | ' + sheetName + ' | SKIPPED (missing dump helper)');
+}
+
+/**
+ * Safely log job run without throwing if logJobRun_ is missing.
+ * @param {Object} ctx - Job context with orch_run_id
+ * @param {string} jobName - Name of the job
+ * @param {string} cursorBefore - Cursor value before processing
+ * @param {string} cursorAfter - Cursor value after processing
+ * @param {string} notes - Notes (for failure: EXACT audit contract string)
+ * @param {string} message - Additional message
+ */
+function logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, notes, message) {
+  try {
+    if (typeof logJobRun_ === 'function') {
+      logJobRun_(ctx, jobName, cursorBefore, cursorAfter, notes, message);
+      return;
+    }
+  } catch (e) {
+    // Fallback to Logger below when logJobRun_ is unavailable.
+  }
+  Logger.log('JOB_RUN_LOG | ' + jobName + ' | cursor: ' + cursorBefore + ' -> ' + cursorAfter +
+             ' | notes=' + (notes || '') + ' | message=' + (message || ''));
+}
+
+/**
  * Dump sheet rows to Logger as evidence
  * @param {string} sheetName - Sheet to dump
  * @param {number} startRow - Start row (1-based)
@@ -171,5 +220,127 @@ function createJobContext_(orchRunId) {
     started_at: nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE)),
     batch_size: cfg_('ORCH_BATCH_SIZE', DEFAULTS.ORCH_BATCH_SIZE)
   };
+}
+
+/**
+ * Build a job context safely without throwing if helper is missing.
+ * @returns {Object} Job context
+ */
+function createJobContextSafe_() {
+  if (typeof createJobContext_ === 'function') {
+    return createJobContext_();
+  }
+  const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+    ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
+    : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
+  const batchSize = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+    ? cfg_('ORCH_BATCH_SIZE', DEFAULTS.ORCH_BATCH_SIZE)
+    : 50;
+  const startedAt = typeof nowIso_ === 'function'
+    ? nowIso_(timezone)
+    : Utilities.formatDate(new Date(), timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  const orchRunId = typeof id_ === 'function'
+    ? id_()
+    : 'run_' + new Date().getTime();
+  return {
+    orch_run_id: orchRunId,
+    started_at: startedAt,
+    batch_size: batchSize
+  };
+}
+
+/**
+ * Safely get recent job runs.
+ * @param {number} n - Number of entries
+ * @returns {Array<Object>} Job run entries
+ */
+function getRecentJobRunsSafe_(n) {
+  if (typeof getRecentJobRuns_ === 'function') {
+    return getRecentJobRuns_(n);
+  }
+  if (typeof getSheetData_ !== 'function') {
+    return [];
+  }
+  const data = getSheetData_(SHEETS.JOB_RUN_LOG);
+  data.sort((a, b) => {
+    if (a.created_at > b.created_at) return -1;
+    if (a.created_at < b.created_at) return 1;
+    return 0;
+  });
+  return data.slice(0, n || 10);
+}
+
+/**
+ * Safely get an ISO timestamp using configured timezone.
+ * @returns {string} ISO timestamp
+ */
+function nowIsoSafe_() {
+  if (typeof nowIso_ === 'function') {
+    const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+      ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
+      : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
+    return nowIso_(timezone);
+  }
+  const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+    ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
+    : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
+  return Utilities.formatDate(new Date(), timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+
+/**
+ * Run a function with error boundary.
+ * @param {string} label - Label for logging
+ * @param {Function} fn - Function to run
+ * @param {*} fallback - Fallback value on error
+ * @returns {*}
+ */
+function runWithErrorBoundary_(label, fn, fallback) {
+  try {
+    return fn();
+  } catch (e) {
+    Logger.log('ERROR_BOUNDARY | ' + label + ' | ' + e.message);
+    return fallback;
+  }
+}
+
+/**
+ * Check remaining email quota and send safely.
+ * @param {string} to - Recipient
+ * @param {string} subject - Email subject
+ * @param {string} body - Email body
+ * @returns {boolean} True if sent
+ */
+function sendEmailSafe_(to, subject, body) {
+  const remaining = typeof MailApp !== 'undefined'
+    ? MailApp.getRemainingDailyQuota()
+    : 0;
+  if (!to || remaining <= 0) {
+    Logger.log('EMAIL | Skipped (quota or missing recipient)');
+    return false;
+  }
+  GmailApp.sendEmail(to, subject, body);
+  return true;
+}
+
+/**
+ * Create a task using the Tasks advanced service.
+ * @param {string} title - Task title
+ * @param {string} notes - Task notes
+ * @param {Date} due - Due date
+ * @returns {Object|null} Task response
+ */
+function createTaskAdvanced_(title, notes, due) {
+  const tasklists = Tasks.Tasklists.list();
+  const listId = tasklists.items && tasklists.items.length > 0 ? tasklists.items[0].id : null;
+  if (!listId) {
+    Logger.log('TASKS | No task list available');
+    return null;
+  }
+  const task = {
+    title: title || '',
+    notes: notes || '',
+    due: due ? new Date(due).toISOString() : undefined
+  };
+  return Tasks.Tasks.insert(task, listId);
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent

@@ -1,6 +1,13 @@
-# CB-OS V1.3 – Tam Dokümantasyon (Tek Dosya)
+# CB-OS V1.4.0 – Tam Dokümantasyon (Tek Dosya)
 
 > Bu doküman, CB-OS çekirdeğindeki **tüm küçük/büyük özellikleri** (modüller, iş akışları, tablolar, otomasyonlar, test/audit süreçleri) koddan çıkarımla tek dosyada toplar. Kodda doğrudan görülen davranışlar ve varsayımlar esas alınmıştır.
+
+## 0) Sürüm Notları (V1.4.0)
+
+- Otomasyon katmanı 18a-18f modüllerine ayrıldı (lead scoring, follow-up, stage otomasyonları, email drafts, docs/win-back, ops/gmail).
+- Tasks Advanced Service adaptasyonu ve tek `onEdit` router ile trigger çakışmaları giderildi.
+- Queue/cursor tutarlılığı ve ops dashboard pending hesaplaması düzeltildi; sheet caching + batch update ile performans iyileştirildi.
+- HTML live dashboard panel eklendi.
 
 ## 1) Genel Bakış
 

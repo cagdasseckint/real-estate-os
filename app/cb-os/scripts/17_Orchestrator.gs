@@ -24,27 +24,51 @@ function ORCH_15MIN(e) {
   try {
     // Job 1: Ingest Process
     Logger.log('ORCH | Starting job 1: ingest_process_job');
-    const ingestResult = ingest_process_job(ctx);
+    const ingestResult = runWithErrorBoundary_('ingest_process_job', () => ingest_process_job(ctx), {
+      processed: 0,
+      skipped: 0,
+      failed: 0,
+      stopped_on_failure: true
+    });
     results.jobs.push({ name: 'ingest_process_job', result: ingestResult });
     
     // Job 2: Calendar Sync
     Logger.log('ORCH | Starting job 2: calendar_sync_job');
-    const calendarResult = calendar_sync_job(ctx);
+    const calendarResult = runWithErrorBoundary_('calendar_sync_job', () => calendar_sync_job(ctx), {
+      synced: 0,
+      skipped: 0,
+      errors: 1
+    });
     results.jobs.push({ name: 'calendar_sync_job', result: calendarResult });
     
     // Job 3: Gmail Scan
     Logger.log('ORCH | Starting job 3: gmail_scan_job');
-    const gmailResult = gmail_scan_job(ctx);
+    const gmailResult = runWithErrorBoundary_('gmail_scan_job', () => gmail_scan_job(ctx), {
+      scanned: 0,
+      leads_found: 0,
+      errors: 1
+    });
     results.jobs.push({ name: 'gmail_scan_job', result: gmailResult });
     
     // Job 4: Guardrails
     Logger.log('ORCH | Starting job 4: guardrails_job');
-    const guardrailsResult = guardrails_job(ctx);
+    const guardrailsResult = runWithErrorBoundary_('guardrails_job', () => guardrails_job(ctx), {
+      stuck_deals: 0,
+      overdue_tasks: 0,
+      sla_violations: 0,
+      alerts_created: 0,
+      lead_scores: 0,
+      draft_emails: 0
+    });
     results.jobs.push({ name: 'guardrails_job', result: guardrailsResult });
     
     // Job 5: DLQ Retry
     Logger.log('ORCH | Starting job 5: dlq_retry_job');
-    const dlqResult = dlq_retry_job(ctx);
+    const dlqResult = runWithErrorBoundary_('dlq_retry_job', () => dlq_retry_job(ctx), {
+      retried: 0,
+      skipped: 0,
+      max_retry_reached: 0
+    });
     results.jobs.push({ name: 'dlq_retry_job', result: dlqResult });
     
   } catch (e) {
@@ -347,7 +371,7 @@ function guardrails_job(ctx) {
         'Stuck deal sayısı: ' + result.stuck_deals,
         'Overdue task sayısı: ' + result.overdue_tasks
       ].join('\n');
-      GmailApp.sendEmail(recipients, subject, body);
+      sendEmailSafe_(recipients, subject, body);
     }
     
   } catch (e) {
