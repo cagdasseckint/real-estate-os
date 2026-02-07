@@ -5,7 +5,7 @@
  * @returns {Object} Job result summary
  */
 function ingest_process_job(ctx) {
-  ctx = ctx || createJobContext_();
+  ctx = ctx || (typeof createJobContext_ === 'function' ? createJobContext_() : createJobContextFallback_());
   const jobName = 'ingest_process_job';
   
   // Get current cursor
@@ -36,7 +36,7 @@ function ingest_process_job(ctx) {
         cursorAfter = buildIngestCursor_(item.received_at, item.sequence_id, item.ingest_id);
         
         // Evidence logging (do not halt queue for permanent errors)
-        logEvidence_('INGEST_FAIL_PERMANENT', 'ingest_id=' + item.ingest_id + ' | error=JSON parse error');
+        logEvidenceSafe_('INGEST_FAIL_PERMANENT', 'ingest_id=' + item.ingest_id + ' | error=JSON parse error');
         continue;
       }
       
@@ -65,7 +65,7 @@ function ingest_process_job(ctx) {
         Logger.log('INGEST_PROCESS | Completed: ' + item.ingest_id);
         
         // Evidence logging
-        logEvidence_('INGEST_SUCCESS', 'ingest_id=' + item.ingest_id + ' | type=' + item.ingest_type);
+        logEvidenceSafe_('INGEST_SUCCESS', 'ingest_id=' + item.ingest_id + ' | type=' + item.ingest_type);
       } else {
         const errorType = processResult.error_type || classifyIngestError_(processResult.error);
         QueueRepo.markFailed(item._rowIndex, item, processResult.error, errorType);
@@ -73,18 +73,18 @@ function ingest_process_job(ctx) {
         
         if (errorType === 'permanent') {
           cursorAfter = buildIngestCursor_(item.received_at, item.sequence_id, item.ingest_id);
-          logEvidence_('INGEST_FAIL_PERMANENT', 'ingest_id=' + item.ingest_id + ' | error=' + processResult.error);
+          logEvidenceSafe_('INGEST_FAIL_PERMANENT', 'ingest_id=' + item.ingest_id + ' | error=' + processResult.error);
           continue;
         }
         
         result.stopped_on_failure = true;
         
         // Gap-free: log and break for transient errors
-        logJobRun_(ctx, jobName, cursorBefore, cursorAfter, 
-                   AUDIT_CONTRACT_STRING, 
-                   'Failed on ingest_id=' + item.ingest_id + ': ' + processResult.error);
+        logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, 
+                       AUDIT_CONTRACT_STRING, 
+                       'Failed on ingest_id=' + item.ingest_id + ': ' + processResult.error);
         
-        logEvidence_('INGEST_FAIL', 'ingest_id=' + item.ingest_id + ' | error=' + processResult.error);
+        logEvidenceSafe_('INGEST_FAIL', 'ingest_id=' + item.ingest_id + ' | error=' + processResult.error);
         break;
       }
       
@@ -94,11 +94,11 @@ function ingest_process_job(ctx) {
       result.failed++;
       result.stopped_on_failure = true;
       
-      logJobRun_(ctx, jobName, cursorBefore, cursorAfter, 
-                 AUDIT_CONTRACT_STRING, 
-                 'Exception on ingest_id=' + item.ingest_id + ': ' + e.message);
+      logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, 
+                     AUDIT_CONTRACT_STRING, 
+                     'Exception on ingest_id=' + item.ingest_id + ': ' + e.message);
       
-      logEvidence_('INGEST_EXCEPTION', 'ingest_id=' + item.ingest_id + ' | error=' + e.message);
+      logEvidenceSafe_('INGEST_EXCEPTION', 'ingest_id=' + item.ingest_id + ' | error=' + e.message);
       break;
     }
   }
@@ -110,15 +110,88 @@ function ingest_process_job(ctx) {
   
   // Log job run (success case)
   if (!result.stopped_on_failure) {
-    logJobRun_(ctx, jobName, cursorBefore, cursorAfter, '', 
-               'Processed=' + result.processed + ', Skipped=' + result.skipped);
+    logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, '', 
+                   'Processed=' + result.processed + ', Skipped=' + result.skipped);
   }
   
   // Dump evidence
-  dumpSheetEvidence_(SHEETS.INGEST_QUEUE, 2, 5);
+  dumpSheetEvidenceSafe_(SHEETS.INGEST_QUEUE, 2, 5);
   
   Logger.log('INGEST_PROCESS | Complete: ' + JSON.stringify(result));
   return result;
+}
+
+/**
+ * Safely log job run without throwing if logJobRun_ is missing.
+ * @param {Object} ctx - Job context with orch_run_id
+ * @param {string} jobName - Name of the job
+ * @param {string} cursorBefore - Cursor value before processing
+ * @param {string} cursorAfter - Cursor value after processing
+ * @param {string} notes - Notes (for failure: EXACT audit contract string)
+ * @param {string} message - Additional message
+ */
+function logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, notes, message) {
+  try {
+    if (typeof logJobRun_ === 'function') {
+      logJobRun_(ctx, jobName, cursorBefore, cursorAfter, notes, message);
+      return;
+    }
+  } catch (e) {
+    // Fallback to Logger below when logJobRun_ is unavailable.
+  }
+  Logger.log('JOB_RUN_LOG | ' + jobName + ' | cursor: ' + cursorBefore + ' -> ' + cursorAfter +
+             ' | notes=' + (notes || '') + ' | message=' + (message || ''));
+}
+
+/**
+ * Safely log evidence without throwing if logEvidence_ is missing.
+ * @param {string} evidenceType - Type of evidence
+ * @param {string} details - Evidence details
+ */
+function logEvidenceSafe_(evidenceType, details) {
+  if (typeof logEvidence_ === 'function') {
+    logEvidence_(evidenceType, details);
+    return;
+  }
+  Logger.log('EVIDENCE | ' + evidenceType + ' | ' + details);
+}
+
+/**
+ * Safely dump sheet evidence without throwing if dumpSheetEvidence_ is missing.
+ * @param {string} sheetName - Sheet to dump
+ * @param {number} startRow - Start row (1-based)
+ * @param {number} numRows - Number of rows to dump
+ */
+function dumpSheetEvidenceSafe_(sheetName, startRow, numRows) {
+  if (typeof dumpSheetEvidence_ === 'function') {
+    dumpSheetEvidence_(sheetName, startRow, numRows);
+    return;
+  }
+  Logger.log('EVIDENCE | SHEET_DUMP | ' + sheetName + ' | SKIPPED (missing dump helper)');
+}
+
+/**
+ * Build a fallback job context when createJobContext_ is missing.
+ * @returns {Object} Job context
+ */
+function createJobContextFallback_() {
+  const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+    ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
+    : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
+  const batchSize = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+    ? cfg_('ORCH_BATCH_SIZE', DEFAULTS.ORCH_BATCH_SIZE)
+    : 50;
+  const startedAt = typeof nowIso_ === 'function'
+    ? nowIso_(timezone)
+    : Utilities.formatDate(new Date(), timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+  const orchRunId = typeof id_ === 'function'
+    ? id_()
+    : 'smoke_' + new Date().getTime();
+  return {
+    orch_run_id: orchRunId,
+    started_at: startedAt,
+    batch_size: batchSize
+  };
 }
 
 /**
