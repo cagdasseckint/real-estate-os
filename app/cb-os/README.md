@@ -294,6 +294,57 @@ CB-OS, doğru kurulum sonrası günlük kullanımda **tek merkezli ve otomasyon 
 **Özet karar:**  
 Kurulum tamamlandıktan sonra saha ekipleri için **kullanıcı dostu** bir akış sağlar; ancak ilk kurulumda bir teknik kullanıcıdan destek alınması önerilir.
 
+## Lead Toplama Mantığı ve Ayırt Etme (Spam / Yanlış Amaç)
+
+CB-OS'ta lead toplama **tek kapı (INGEST_QUEUE)** yaklaşımıyla çalışır: form, API, WhatsApp entegrasyonu veya Gmail sinyali üzerinden gelen tüm kayıtlar önce kuyruğa düşer, sonra normalize edilip CRM tablolarına yazılır. Bu sayede sistem, gelen veriyi **tek bir akışta** kontrol eder.
+
+### 1) “Müşteri olmayan” e-postayı nasıl ayırt eder?
+
+Gmail tarafında sadece **belirli etiketler** (label) ingest edilir. Yani sistem, tüm mailleri otomatik lead saymak yerine **seçici bir şekilde** etiketlenmiş mesajları kuyruğa alır. Örnek yaklaşım:
+
+- “Lead” olarak işlenecek e-postalar için ayrı bir Gmail etiketi kullanılır.
+- Spam, tedarikçi, iş başvurusu vb. mesajlara bu etiket verilmez.
+- Böylece sistem yalnızca **etiketli lead maillerini** `INGEST_QUEUE`'ya taşır.
+
+Bu, yanlış amaçla gelen e-postaları sistem dışı bırakmanın en basit ve güvenli yoludur.
+
+### 2) Sıcak / Soğuk ilişkiyi otomatik nasıl kurar?
+
+CB-OS, lead scoring otomasyonunu kullanır:
+
+- E-posta açma, randevu oluşturma, formu tekrar doldurma gibi sinyaller `LEAD_SIGNALS` tablosuna düşer.
+- `LEAD_SIGNALS` → `LEAD_SCORES` dönüşümü ile her kişi için **skor** hesaplanır.
+- Skora göre “Sıcak / Ilık / Soğuk” sınıflaması yapılır ve **otomatik takip görevleri** tetiklenir.
+
+Örneğin:
+- Skoru yüksek lead’ler için “Top lead follow-up” görevleri otomatik açılır.
+- Skoru düşük olanlar için daha uzun aralıklı follow-up sequence uygulanır.
+
+### 3) Benzersiz ID ve doğru portföy eşleşmesi nasıl yapılır?
+
+CB-OS’ta her kayıt **benzersiz ID** ile tutulur:
+
+- `CONTACTS` ve `DEALS` tablolarında sistem otomatik ID üretir.
+- `DEDUP_KEYS` tablosu aynı kişi/lead tekrarını engeller.
+- `idempotency_key` kullanılırsa, aynı kayıt tekrar işlenmez.
+
+Böylece:
+- Aynı müşteri tekrar geldiğinde yeni kayıt açılmaz.
+- Doğru müşteri doğru deal/portföy ile eşleştirilir.
+
+### 4) Ücretsiz bir yapay zekâ ile otomasyon mümkün mü?
+
+CB-OS, Gmail/Forms/Sheets tabanlı olduğu için temel otomasyonlar **AI olmadan bile** çalışır.  
+AI ile otomasyon isteyen kullanıcılar için ise iki pratik yaklaşım vardır:
+
+1. **Ücretsiz/Low-cost AI API**  
+   - Basit sınıflandırmalar (lead vs. non-lead) için ücretsiz kota veren servisler kullanılabilir.
+2. **Kurallı filtreleme + etiketleme**  
+   - Gmail filtreleri ile konu/anahtar kelime bazlı etiketleme yapılabilir.
+   - Bu yöntem tamamen ücretsizdir ve lead ayrıştırmada çoğu zaman yeterlidir.
+
+**Öneri:** Önce filtre + etiketleme ile başlamak, ihtiyaç artarsa AI katmanı eklemek en güvenli yol olacaktır.
+
 ### Yeni Lead Ekleme (Form veya API)
 
 ```javascript
