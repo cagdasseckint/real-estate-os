@@ -77,8 +77,14 @@ bootstrapDashboardSheets_()
 // Özet tabloları güncelle
 refreshDashboardSummary_()
 
-// Tüm tabloları tek sayfada birleştir
+// Tüm tabloları tek sayfada birleştir (tam yenileme)
 refreshUnifiedTables_()
+
+// Incremental refresh (sadece yeni kayıtlar + limit)
+refreshUnifiedTables_({
+  incremental: true,
+  max_rows: 500
+})
 
 // Grafik dashboard'u üret
 refreshDashboardCharts_()

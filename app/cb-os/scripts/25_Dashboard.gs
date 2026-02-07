@@ -18,21 +18,42 @@ function bootstrapDashboardSheets_() {
 /**
  * Refresh a unified table view by combining all CB-OS sheets into one table.
  * Each row is stored as JSON to preserve the original schema.
+ * @param {Object} options - Refresh options
+ * @param {boolean} options.incremental - Use incremental mode (default false)
+ * @param {Array<string>} options.include_tables - Limit to specific tables
+ * @param {Array<string>} options.exclude_tables - Tables to skip
+ * @param {number} options.max_rows - Max rows to append per run (incremental only)
+ * @param {string} options.since_iso - Only include rows with updated_at >= since_iso
  * @returns {Object} Refresh summary
  */
-function refreshUnifiedTables_() {
+function refreshUnifiedTables_(options) {
+  const opts = options || {};
   bootstrapDashboardSheets_();
   const unifiedSheet = sheet_(SHEETS.UNIFIED_TABLES, false);
   if (!unifiedSheet) return { ok: false, reason: 'missing_unified_sheet' };
 
-  const tableNames = Object.values(SHEETS).filter(name => !isDashboardSheet_(name));
+  const allTables = Object.values(SHEETS).filter(name => !isDashboardSheet_(name));
+  let tableNames = allTables.slice();
+  if (opts.include_tables && opts.include_tables.length > 0) {
+    tableNames = tableNames.filter(name => opts.include_tables.indexOf(name) !== -1);
+  }
+  if (opts.exclude_tables && opts.exclude_tables.length > 0) {
+    tableNames = tableNames.filter(name => opts.exclude_tables.indexOf(name) === -1);
+  }
+
+  const incremental = Boolean(opts.incremental);
+  const sinceIso = opts.since_iso || (incremental ? getUnifiedCursor_() : '');
+  const maxRows = Number(opts.max_rows || 0);
 
   const rows = [];
   for (const tableName of tableNames) {
     const data = getSheetData_(tableName);
     for (const row of data) {
-      const rowId = buildUnifiedRowId_(tableName, row);
       const updatedAt = extractUnifiedTimestamp_(row);
+      if (sinceIso && updatedAt && updatedAt < sinceIso) {
+        continue;
+      }
+      const rowId = buildUnifiedRowId_(tableName, row);
       const rowCopy = Object.assign({}, row);
       delete rowCopy._rowIndex;
       rows.push([
@@ -41,20 +62,39 @@ function refreshUnifiedTables_() {
         updatedAt,
         JSON.stringify(rowCopy)
       ]);
+      if (incremental && maxRows > 0 && rows.length >= maxRows) {
+        break;
+      }
+    }
+    if (incremental && maxRows > 0 && rows.length >= maxRows) {
+      break;
     }
   }
 
-  unifiedSheet.clearContents();
-  unifiedSheet.getRange(1, 1, 1, CANONICAL_HEADERS[SHEETS.UNIFIED_TABLES].length)
-    .setValues([CANONICAL_HEADERS[SHEETS.UNIFIED_TABLES]]);
-  unifiedSheet.getRange(1, 1, 1, CANONICAL_HEADERS[SHEETS.UNIFIED_TABLES].length)
-    .setFontWeight('bold');
-
-  if (rows.length > 0) {
-    unifiedSheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  if (!incremental) {
+    unifiedSheet.clearContents();
+    unifiedSheet.getRange(1, 1, 1, CANONICAL_HEADERS[SHEETS.UNIFIED_TABLES].length)
+      .setValues([CANONICAL_HEADERS[SHEETS.UNIFIED_TABLES]]);
+    unifiedSheet.getRange(1, 1, 1, CANONICAL_HEADERS[SHEETS.UNIFIED_TABLES].length)
+      .setFontWeight('bold');
   }
 
-  return { ok: true, rows: rows.length, tables: tableNames.length };
+  if (rows.length > 0) {
+    const startRow = incremental ? unifiedSheet.getLastRow() + 1 : 2;
+    unifiedSheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+  }
+
+  if (incremental) {
+    setUnifiedCursor_(nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE)));
+  }
+
+  return {
+    ok: true,
+    rows: rows.length,
+    tables: tableNames.length,
+    incremental: incremental,
+    since: sinceIso || ''
+  };
 }
 
 /**
@@ -225,6 +265,23 @@ function isDashboardSheet_(sheetName) {
     SHEETS.COURSE_SESSIONS,
     SHEETS.KNOWLEDGE_BASE
   ].indexOf(sheetName) !== -1;
+}
+
+/**
+ * Get unified table cursor from CONFIG.
+ * @returns {string} Cursor ISO string
+ */
+function getUnifiedCursor_() {
+  return cfg_('UNIFIED_TABLES_LAST_UPDATED_AT', '');
+}
+
+/**
+ * Set unified table cursor in CONFIG.
+ * @param {string} isoString - ISO timestamp
+ */
+function setUnifiedCursor_(isoString) {
+  setConfigValue_('UNIFIED_TABLES_LAST_UPDATED_AT', isoString || '', 'Unified tables cursor');
+  refreshConfig_();
 }
 
 /**
