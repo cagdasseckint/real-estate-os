@@ -182,6 +182,33 @@ function nowIsoSafe_() {
 }
 
 /**
+ * Get the maximum ingest cursor from the queue.
+ * @returns {string} Max cursor or empty string
+ */
+function getMaxIngestCursor_() {
+  if (typeof getSheetData_ !== 'function') {
+    return '';
+  }
+  const rows = getSheetData_(SHEETS.INGEST_QUEUE);
+  let maxRow = null;
+  for (const row of rows) {
+    if (!row.received_at || !row.sequence_id || !row.ingest_id) {
+      continue;
+    }
+    if (!maxRow || compareIngestCursor_(
+      { received_at: row.received_at, sequence_id: row.sequence_id, ingest_id: row.ingest_id },
+      { received_at: maxRow.received_at, sequence_id: maxRow.sequence_id, ingest_id: maxRow.ingest_id }
+    ) === 1) {
+      maxRow = row;
+    }
+  }
+  if (!maxRow) {
+    return '';
+  }
+  return buildIngestCursor_(maxRow.received_at, maxRow.sequence_id, maxRow.ingest_id);
+}
+
+/**
  * Test 1: Deterministic enqueue ordering
  * A enqueue -> sleep >= 1000ms -> B enqueue
  * Verify A cursor < B cursor
@@ -278,9 +305,9 @@ function test_dlqInsert_() {
     : '';
   
   try {
-    if (typeof setCursor_ === 'function') {
-      setCursor_(CURSORS.INGEST_LAST_RECEIVED_AT, nowIsoSafe_());
-      Utilities.sleep(1100);
+    const maxCursor = getMaxIngestCursor_();
+    if (typeof setCursor_ === 'function' && maxCursor) {
+      setCursor_(CURSORS.INGEST_LAST_RECEIVED_AT, maxCursor);
     }
     // Enqueue item with invalid JSON payload (will fail parsing)
     const testIngestId = 'smoke_dlq_' + Date.now();
@@ -374,9 +401,10 @@ function test_gapFreeCursor_() {
     const cursorAfter = getCursor_(CURSORS.INGEST_LAST_RECEIVED_AT);
     
     // Check that JOB_RUN_LOG contains the audit contract string
-    const recentRuns = getRecentJobRunsSafe_(5);
+    const recentRuns = getRecentJobRunsSafe_(20);
     const failedRun = recentRuns.find(run =>
       run.job_name === 'ingest_process_job' &&
+      run.orch_run_id === ctx.orch_run_id &&
       (run.notes === AUDIT_CONTRACT_STRING || run.message?.includes('Failed'))
     );
     
