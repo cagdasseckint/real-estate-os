@@ -144,6 +144,44 @@ function createJobContextSafe_() {
 }
 
 /**
+ * Safely get recent job runs for smoke tests.
+ * @param {number} n - Number of entries
+ * @returns {Array<Object>} Job run entries
+ */
+function getRecentJobRunsSafe_(n) {
+  if (typeof getRecentJobRuns_ === 'function') {
+    return getRecentJobRuns_(n);
+  }
+  if (typeof getSheetData_ !== 'function') {
+    return [];
+  }
+  const data = getSheetData_(SHEETS.JOB_RUN_LOG);
+  data.sort((a, b) => {
+    if (a.created_at > b.created_at) return -1;
+    if (a.created_at < b.created_at) return 1;
+    return 0;
+  });
+  return data.slice(0, n || 10);
+}
+
+/**
+ * Safely get an ISO timestamp using configured timezone.
+ * @returns {string} ISO timestamp
+ */
+function nowIsoSafe_() {
+  if (typeof nowIso_ === 'function') {
+    const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+      ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
+      : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
+    return nowIso_(timezone);
+  }
+  const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
+    ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
+    : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
+  return Utilities.formatDate(new Date(), timezone, "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+
+/**
  * Test 1: Deterministic enqueue ordering
  * A enqueue -> sleep >= 1000ms -> B enqueue
  * Verify A cursor < B cursor
@@ -235,13 +273,20 @@ function test_dlqInsert_() {
   Logger.log('SMOKE_TEST | ' + testName + ' | START');
   
   const riskFlags = [];
+  const originalCursor = typeof getCursor_ === 'function'
+    ? getCursor_(CURSORS.INGEST_LAST_RECEIVED_AT)
+    : '';
   
   try {
+    if (typeof setCursor_ === 'function') {
+      setCursor_(CURSORS.INGEST_LAST_RECEIVED_AT, nowIsoSafe_());
+      Utilities.sleep(1100);
+    }
     // Enqueue item with invalid JSON payload (will fail parsing)
     const testIngestId = 'smoke_dlq_' + Date.now();
     
     // Manually insert to queue with malformed payload (E-002 fix: removed unused variable)
-    const now = nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE));
+    const now = nowIsoSafe_();
     
     appendRow_(SHEETS.INGEST_QUEUE, {
       status: INGEST_STATUS.NEW,
@@ -297,6 +342,10 @@ function test_dlqInsert_() {
     const result = logSmokeTestSafe_(testName, false, 'Exception: ' + e.message);
     result.risk_flags = riskFlags;
     return result;
+  } finally {
+    if (typeof setCursor_ === 'function') {
+      setCursor_(CURSORS.INGEST_LAST_RECEIVED_AT, originalCursor || '');
+    }
   }
 }
 
@@ -325,7 +374,7 @@ function test_gapFreeCursor_() {
     const cursorAfter = getCursor_(CURSORS.INGEST_LAST_RECEIVED_AT);
     
     // Check that JOB_RUN_LOG contains the audit contract string
-    const recentRuns = getRecentJobRuns_(5);
+    const recentRuns = getRecentJobRunsSafe_(5);
     const failedRun = recentRuns.find(run =>
       run.job_name === 'ingest_process_job' &&
       (run.notes === AUDIT_CONTRACT_STRING || run.message?.includes('Failed'))
