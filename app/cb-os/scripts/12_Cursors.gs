@@ -21,27 +21,8 @@ function getCursor_(cursorKey) {
  */
 function setCursor_(cursorKey, value) {
   const configKey = 'CURSOR_' + cursorKey;
-  const sheet = sheet_(SHEETS.CONFIG, true);
-  if (!sheet) return;
-  
-  // Find existing row
-  const data = sheet.getDataRange().getValues();
-  let rowIdx = -1;
-  
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === configKey) {
-      rowIdx = i + 1; // 1-based
-      break;
-    }
-  }
-  
-  if (rowIdx > 0) {
-    // Update existing
-    sheet.getRange(rowIdx, 2).setValue(value);
-  } else {
-    // Insert new
-    sheet.appendRow([configKey, value, 'Cursor for ' + cursorKey]);
-  }
+  setConfigValue_(configKey, value, 'Cursor for ' + cursorKey);
+  refreshConfig_();
   
   Logger.log('CURSOR | Set ' + cursorKey + ' = ' + value);
 }
