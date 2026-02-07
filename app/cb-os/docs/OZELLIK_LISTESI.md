@@ -1,4 +1,4 @@
-# CB-OS V1.3 – Detaylı Özellik Listesi
+# CB-OS V1.4.0 – Detaylı Özellik Listesi
 
 ## 1) Genel Mimari ve Prensipler
 - **Google Apps Script + Google Sheets tabanlı SoT mimarisi**: Tüm gerçekler tek bir workbook’ta tutulur ve sistemin tek doğrusu buradadır.

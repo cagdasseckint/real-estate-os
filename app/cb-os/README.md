@@ -1,4 +1,4 @@
-# CB-OS V1.3 - Kurulum ve Kullanım Kılavuzu
+# CB-OS V1.4.0 - Kurulum ve Kullanım Kılavuzu
 
 ## Hızlı Başlangıç
 

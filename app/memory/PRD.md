@@ -1,4 +1,4 @@
-# CB-OS V1.3 - PRD (Product Requirements Document)
+# CB-OS V1.4.0 - PRD (Product Requirements Document)
 
 ## Proje Özeti
 CB-OS, Google ekosistemi üzerine inşa edilmiş Go High Level (GHL) benzeri bir iş yönetim sistemidir.
@@ -59,5 +59,12 @@ CB-OS, Google ekosistemi üzerine inşa edilmiş Go High Level (GHL) benzeri bir
 5. Form entegrasyonu yap
 
 ## Tarihçe
+- **Ocak 2026:** V1.4.0 iyileştirme paketi yayınlandı
 - **Ocak 2026:** V1.3 CORE PACK oluşturuldu
 Çağdaş Seçkin Tüfekci - Real Estate Agent
+### V1.4.0 Sürüm Notları (Ocak 2026)
+- [x] Otomasyon modülleri parçalara ayrıldı (18a-18f) ve doc listesi güncellendi
+- [x] Queue/cursor tutarlılığı ve ops dashboard pending hesaplaması düzeltildi
+- [x] Tasks Advanced Service adaptasyonu + onEdit trigger birleştirme yapıldı
+- [x] Sheet caching + batch update iyileştirmeleri eklendi
+- [x] HTML live dashboard panel eklendi
