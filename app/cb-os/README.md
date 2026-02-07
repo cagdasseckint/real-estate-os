@@ -72,6 +72,40 @@ bootstrapSheets_()
 
 Bu komut tüm gerekli sheet'leri canonical header'larla oluşturur.
 
+### 5.0 Uçtan Uca Kurulum Fonksiyonları (Önerilen Sıra)
+
+Aşağıdaki adımlar, sıfırdan kurulum yapan biri için tüm kurulum fonksiyonlarını uçtan uca tamamlar:
+
+```javascript
+// 1) Ana SoT sheet'lerini oluştur
+bootstrapSheets_()
+
+// 2) Dashboard tablolarını oluştur
+bootstrapDashboardSheets_()
+
+// 3) Gap coverage tablolarını oluştur
+bootstrapGapCoverageSheets_()
+
+// 4) Partial coverage tablolarını oluştur
+bootstrapPartialCoverageSheets_()
+
+// 5) Dashboard özet/veri üretimleri (ilk tam yenileme)
+refreshDashboardSummary_()
+refreshUnifiedTables_()
+refreshDashboardCharts_()
+
+// 6) Gap coverage özetlerini ilk kez üret
+refreshClientPortalLinks_()
+refreshOfflineConversions_()
+refreshAdsAttributionSummary_()
+refreshBookingSummary_()
+refreshEmailOutreachSummary_()
+```
+
+> Notlar:
+> - `refreshUnifiedTables_()` ilk kurulumda tam çalıştırılmalıdır; sonrasında incremental mod kullanılabilir.
+> - Gap/Partial coverage tabloları opsiyoneldir; ihtiyaç yoksa adım 3-4 atlanabilir.
+
 ### 5.1 Dashboard Sayfalarını Oluşturma
 
 Tek sayfalık birleşik tablo ve grafik dashboard'u oluşturmak için:
@@ -181,6 +215,24 @@ upsertKnowledgeBaseEntry_({
 
 ## Test Etme
 
+### Test Fonksiyonlarını Uçtan Uca Çalıştırma (Önerilen Sıra)
+
+Kurulum sonrası sistem sağlığını doğrulamak için aşağıdaki sırayı izleyin:
+
+```javascript
+// 1) Smoke testleri (temel veri akışı ve idempotency kontrolleri)
+runSmokeTests()
+
+// 2) Audit kontrolleri (cursor/offset ve audit string kontrolleri)
+runAuditChecks()
+
+// 3) Tam audit (detaylı governance kontrolleri)
+runFullAudit()
+```
+
+> Not: İlk kurulumdan hemen sonra `runSmokeTests()` ve `runAuditChecks()` yeterli olabilir.
+> `runFullAudit()` daha uzun sürebilir, yoğun veride planlı olarak çalıştırılması önerilir.
+
 ```javascript
 // Smoke testlerini çalıştır
 runSmokeTests()
@@ -193,6 +245,54 @@ runFullAudit()
 ```
 
 ## Kullanım Örnekleri
+
+## Gayrimenkul Danışmanı için Uçtan Uca Kullanım Akışı
+
+Aşağıdaki akış, CB-OS'u günlük işlerinde kullanan bir gayrimenkul danışmanı için önerilen uçtan uca kullanım senaryosudur:
+
+1. **Lead toplama (Form/API/WhatsApp/Gmail sinyali)**  
+   - Lead’ler form veya API ile `INGEST_QUEUE` üzerinden sisteme düşer.  
+   - Gmail sinyalleri açık ise sistem belirlenen etiketleri tarayıp otomatik ingest eder.
+
+2. **Otomatik CRM kayıtları ve iş yaratma**  
+   - Yeni lead işlendiğinde `CONTACTS` ve `DEALS` kayıtları oluşur.  
+   - Deal tipine göre görevler `TASKS` tablosuna otomatik açılır.  
+
+3. **Pipeline ve Stage yönetimi**  
+   - Danışman stage güncellemelerini yapar (ör. Viewing, Offer, Closed).  
+   - Stage değişiminde otomasyonlar (email, doküman paketleri, win-back) tetiklenir.
+
+4. **Takip ve hatırlatmalar**  
+   - Follow-up sequences ve lead scoring devreye girer.  
+   - Yüksek skorlu lead’ler için ek takip görevleri oluşur.
+
+5. **Müşteri dokümanları ve dosya yönetimi**  
+   - Docs paketleri ve Drive klasörleri otomatik oluşturulur.  
+   - Doc şablonları ile kontrat/doküman üretimi yapılır.
+
+6. **Raporlama ve dashboard kullanımı**  
+   - Unified Table ve Dashboard sayfaları pipeline, lead kaynakları ve KPI'ları gösterir.  
+   - Ops dashboard ile pending iş, DLQ ve hata oranları izlenir.
+
+7. **Haftalık/aylık operasyon kontrolü**  
+   - Haftalık KPI raporu ile pipeline ve task özetleri otomatik gönderilir.  
+   - Gerekirse `runAuditChecks()` veya `runFullAudit()` ile sistem sağlığı doğrulanır.
+
+## Kullanıcı Dostu mu?
+
+CB-OS, doğru kurulum sonrası günlük kullanımda **tek merkezli ve otomasyon odaklı** bir deneyim sunar; ancak ilk kurulum ve bakım süreçleri teknik bilgi gerektirir. Aşağıdaki özet, pratikte kullanıcı dostu olup olmadığını netleştirmek için hazırlanmıştır:
+
+**Güçlü yanlar (kullanıcı dostu yapan noktalar):**
+- **Tek merkez**: Leads, pipeline, görevler ve dashboard tek bir Google Sheets workbook’ta toplanır.
+- **Otomasyonlar**: Stage automations, follow-up ve docs paketleri manuel işi azaltır.
+- **Görünürlük**: Dashboard’lar günlük KPI, pipeline ve SLA takibini kolaylaştırır.
+
+**Zorlayıcı alanlar (ilk kullanım bariyerleri):**
+- **Kurulum adımları**: Bootstrap, dashboard ve opsiyonel coverage modülleri ilk kurulumda dikkat gerektirir.
+- **Apps Script bilgi ihtiyacı**: Trigger kurma, izinler ve audit çalıştırmaları için teknik farkındalık gerekir.
+
+**Özet karar:**  
+Kurulum tamamlandıktan sonra saha ekipleri için **kullanıcı dostu** bir akış sağlar; ancak ilk kurulumda bir teknik kullanıcıdan destek alınması önerilir.
 
 ### Yeni Lead Ekleme (Form veya API)
 
