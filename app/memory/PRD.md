@@ -42,7 +42,7 @@ CB-OS, Google ekosistemi üzerine inşa edilmiş Go High Level (GHL) benzeri bir
 - [ ] Gmail API gerçek tarama
 
 ### Backlog (P1 - Yüksek)
-- [ ] Dashboard sheet'leri ve KPI hesaplamaları
+- [x] Dashboard sheet'leri ve KPI hesaplamaları
 - [ ] Google Tasks mirror entegrasyonu
 - [ ] STAGE_AUTOMATIONS tablosu implementasyonu
 

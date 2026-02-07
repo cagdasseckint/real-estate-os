@@ -38,6 +38,9 @@ appsscript.json    → Proje ayarları (manifest)
 22_LeadCapture.gs → Lead capture (Forms -> CRM)
 23_ClientFiles.gs → Client files provisioning (Drive/Docs/Tasks)
 24_ListingsAndCompliance.gs → Listings/Agreements/Consents/Conversions
+25_Dashboard.gs → Dashboard (unified table + summary + charts)
+26_GapCoverage.gs → Gap coverage helpers (ads/booking/email)
+27_PartialCoverage.gs → Partial coverage helpers (tenants/courses/KB)
 ```
 
 ### 3. appsscript.json Güncelleme
@@ -247,6 +250,9 @@ ORCH_15MIN();
     ├── 21_BookingSystem.gs       # Booking system (Forms + Calendar)
     ├── 22_LeadCapture.gs         # Lead capture (Forms -> CRM)
     ├── 23_ClientFiles.gs         # Client files provisioning (Drive/Docs/Tasks)
-    └── 24_ListingsAndCompliance.gs # Listings/Agreements/Consents/Conversions
+    ├── 24_ListingsAndCompliance.gs # Listings/Agreements/Consents/Conversions
+    ├── 25_Dashboard.gs           # Dashboard (unified table + summary + charts)
+    ├── 26_GapCoverage.gs         # Gap coverage helpers (ads/booking/email)
+    └── 27_PartialCoverage.gs     # Partial coverage helpers (tenants/courses/KB)
 ```
 Çağdaş Seçkin Tüfekci - Real Estate Agent
