@@ -63,6 +63,86 @@ bootstrapSheets_()
 
 Bu komut tüm gerekli sheet'leri canonical header'larla oluşturur.
 
+### 5.1 Dashboard Sayfalarını Oluşturma
+
+Tek sayfalık birleşik tablo ve grafik dashboard'u oluşturmak için:
+
+```javascript
+// Dashboard sayfalarını oluştur
+bootstrapDashboardSheets_()
+
+// Özet tabloları güncelle
+refreshDashboardSummary_()
+
+// Tüm tabloları tek sayfada birleştir
+refreshUnifiedTables_()
+
+// Grafik dashboard'u üret
+refreshDashboardCharts_()
+```
+
+### 5.2 Gap Coverage Mini-Modüller
+
+GHL/Masternex boşluklarını Google araçlarıyla kapatmak için temel mini-modüller:
+
+```javascript
+// Gap coverage sheet'lerini oluştur
+bootstrapGapCoverageSheets_()
+
+// Reputation feedback loglama (Forms payload ile)
+logReputationFeedback_({
+  contact_id: 'CONTACT_123',
+  deal_id: 'DEAL_456',
+  rating: 5,
+  comment: 'Çok memnun kaldım',
+  source: 'google_form'
+})
+
+// Client portal link index üret
+refreshClientPortalLinks_()
+
+// Offline conversion export (Ads import için)
+refreshOfflineConversions_()
+
+// Ads attribution özet tablosu
+refreshAdsAttributionSummary_()
+
+// Booking (Forms/Calendar) özet tablosu
+refreshBookingSummary_()
+
+// Gmail outreach özet tablosu
+refreshEmailOutreachSummary_()
+```
+
+### 5.3 Kısmen Kapanan Modüller (Google-native)
+
+```javascript
+// Kısmen kapanan modül sheet'lerini oluştur
+bootstrapPartialCoverageSheets_()
+
+// Multi-tenant kayıt örneği
+registerTenant_({
+  tenant_name: 'Müşteri A',
+  workbook_id: 'spreadsheet_id',
+  drive_root_id: 'drive_folder_id'
+})
+
+// Course/Community oturum kaydı
+createCourseSession_({
+  title: 'Haftalık Eğitim',
+  meeting_link: 'https://meet.google.com/...',
+  scheduled_at: '2025-01-01T10:00:00+03:00',
+  host_email: 'owner@example.com'
+})
+
+// Knowledge base giriş güncelleme
+upsertKnowledgeBaseEntry_({
+  title: 'Süreç Dokümanı',
+  category: 'Ops',
+  doc_url: 'https://docs.google.com/...'
+})
+```
+
 ### 6. Trigger Kurulumu
 
 1. Sol panelde saat simgesine (Triggers) tıkla
