@@ -36,7 +36,14 @@
   `CONSENTS`, `CONVERSION_QUEUE`, `SMOKE_TEST_LOG`
 
 ### 4.4 Dashboard
+- `UNIFIED_TABLES`, `DASHBOARD_CHARTS`, `DASHBOARD_SUMMARY`, `DASHBOARD_PIPELINE`,
+  `DASHBOARD_LEAD_SOURCES`, `DASHBOARD_SLA`
 - `DAILY_SNAPSHOT`, `WEEKLY_SUMMARY`
+
+### 4.5 Coverage / Yardımcı Tablolar
+- `REPUTATION_FEEDBACK`, `PORTAL_LINKS`, `OFFLINE_CONVERSIONS`, `CONTENT_LIBRARY`
+- `ADS_ATTRIBUTION_SUMMARY`, `BOOKING_SUMMARY`, `EMAIL_OUTREACH_SUMMARY`
+- `TENANTS`, `COURSE_SESSIONS`, `KNOWLEDGE_BASE`
 
 ## 5) Konfigürasyon ve Varsayılanlar
 - Zaman dilimi, WhatsApp/Booking modları, SLA ve batch size ayarları
@@ -74,6 +81,11 @@
 - **Lead Capture**: Form submit → Contacts/Opportunities upsert + round-robin owner
 - **Client Files Provisioning**: Klasör + özet dokümanı + onboarding görevleri
 - **Listings & Compliance**: Property/Agreements/Consents/Conversion Queue CRUD + event logging
+
+### 9.1 Dashboard & Coverage Utilities
+- **Unified Table + Dashboard Summary**: tek sayfa görünüm ve özet tablolar
+- **Gap Coverage**: Ads attribution, booking, Gmail outreach, reputation feedback, portal links, offline conversions
+- **Partial Coverage**: tenants, course sessions, knowledge base kayıtları
 
 ## 10) Test, Audit ve Governance
 - **Smoke Tests**: Determinism, idempotency, DLQ insert, gap-free cursor, LAND normalization, events append-only

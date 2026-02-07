@@ -37,6 +37,9 @@ Bu doküman CB-OS kodlarını Google Apps Script (GAS) ortamına yüklemek ve ca
 22_LeadCapture.gs
 23_ClientFiles.gs
 24_ListingsAndCompliance.gs
+25_Dashboard.gs
+26_GapCoverage.gs
+27_PartialCoverage.gs
 ```
 
 Ardından `scripts/appsscript.json` içeriğini GAS projesindeki `appsscript.json` dosyasına yapıştırın.
