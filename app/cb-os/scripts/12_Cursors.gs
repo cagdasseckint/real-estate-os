@@ -67,9 +67,17 @@ function formatIsoWithOffset_(dateObj, tz) {
   } catch (e) {
     // Fall through to manual calculation
   }
-  
+
   const basePart = Utilities.formatDate(date, timezone, "yyyy-MM-dd'T'HH:mm:ss");
-  const offset = '+03:00';
+  let offset = '+00:00';
+  try {
+    const rawOffset = Utilities.formatDate(date, timezone, 'Z');
+    if (rawOffset && rawOffset.length === 5) {
+      offset = rawOffset.slice(0, 3) + ':' + rawOffset.slice(3);
+    }
+  } catch (e) {
+    // Keep default offset fallback
+  }
   return basePart + offset;
 }
 

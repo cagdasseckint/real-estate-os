@@ -458,7 +458,7 @@ function scheduleWinbackSequence_(deal, contact) {
  * Update ops dashboard snapshot
  */
 function updateOpsDashboard_() {
-  const ingestPending = QueueRepo.getPending().length;
+  const ingestPending = QueueRepo.getPending('', 0).length;
   const dlqCount = getSheetData_(SHEETS.DLQ).length;
   const totalIngest = getSheetData_(SHEETS.INGEST_QUEUE).length;
   const errorRate = totalIngest > 0 ? (dlqCount / totalIngest) : 0;
@@ -690,7 +690,7 @@ function weekly_kpi_report_job() {
     'Attribution bağlı lead sayısı: ' + attributed
   ].join('\n');
   
-  GmailApp.sendEmail(recipients, subject, body);
+  sendEmailSafe_(recipients, subject, body);
   
   return { sent: true };
 }

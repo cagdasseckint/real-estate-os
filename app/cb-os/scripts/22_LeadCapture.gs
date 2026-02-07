@@ -152,9 +152,14 @@ function selectOwnerRoundRobin_() {
     return fallback;
   }
   
-  const activeOwners = data.slice(1).filter(row => {
+  const activeOwners = data.slice(1).map((row, index) => ({
+    row: row,
+    rowIndex: index + 2
+  })).filter(entry => {
+    const row = entry.row;
     const isActive = String(row[headers.indexOf('is_active')]).toLowerCase() === 'true';
-    return isActive;
+    const email = row[headers.indexOf('owner_email')];
+    return isActive && email;
   });
   
   if (activeOwners.length === 0) {
@@ -162,17 +167,20 @@ function selectOwnerRoundRobin_() {
   }
   
   let selected = activeOwners[0];
+  let selectedLast = selected.row[headers.indexOf('last_assigned_at')] || '';
   for (const owner of activeOwners) {
-    const lastAssigned = owner[headers.indexOf('last_assigned_at')] || '';
-    const selectedLast = selected[headers.indexOf('last_assigned_at')] || '';
-    if (!selectedLast || (lastAssigned && lastAssigned < selectedLast)) {
+    const lastAssigned = owner.row[headers.indexOf('last_assigned_at')] || '';
+    const lastAssignedDate = lastAssigned ? new Date(lastAssigned).getTime() : 0;
+    const selectedDate = selectedLast ? new Date(selectedLast).getTime() : 0;
+    if (!selectedLast || (lastAssigned && lastAssignedDate < selectedDate)) {
       selected = owner;
+      selectedLast = lastAssigned;
     }
   }
   
-  const ownerEmail = selected[headers.indexOf('owner_email')];
-  const rowIndex = data.indexOf(selected) + 1;
-  sheet.getRange(rowIndex, headers.indexOf('last_assigned_at') + 1).setValue(new Date().toISOString());
+  const ownerEmail = selected.row[headers.indexOf('owner_email')];
+  sheet.getRange(selected.rowIndex, headers.indexOf('last_assigned_at') + 1)
+    .setValue(new Date().toISOString());
   return ownerEmail;
 }
 
@@ -238,7 +246,7 @@ function sendWelcomeEmail_(payload, ownerEmail) {
     'Hizmet: ' + payload.service,
     'Sorumlu: ' + ownerEmail
   ].join('\n');
-  GmailApp.sendEmail(payload.email, subject, body);
+  sendEmailSafe_(payload.email, subject, body);
 }
 
 /**

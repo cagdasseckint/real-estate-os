@@ -232,7 +232,7 @@ function logActivity_(entityType, entityId, action, details) {
 /**
  * onEdit trigger for Opportunities stage/status updates
  */
-function onEdit(e) {
+function crmOnEdit_(e) {
   if (!cfg_('MODULES_CRM_ENABLED', DEFAULTS.MODULES_CRM_ENABLED)) return;
   const range = e.range;
   const sheet = range.getSheet();
@@ -338,5 +338,51 @@ function seedCrmSampleData_() {
   });
   
   refreshCrmReport_();
+}
+
+/**
+ * Sync CRM Contacts sheet to core CONTACTS table.
+ * Ensures core SoT stays updated when CRM module is enabled.
+ * @returns {Object} Sync summary
+ */
+function syncCrmContactsToCore_() {
+  if (!cfg_('MODULES_CRM_ENABLED', DEFAULTS.MODULES_CRM_ENABLED)) {
+    return { skipped: true };
+  }
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CRM_SHEETS.CONTACTS);
+  if (!sheet) return { ok: false, reason: 'crm_contacts_missing' };
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0] || [];
+  if (data.length < 2) return { ok: true, synced: 0 };
+
+  let synced = 0;
+  for (let i = 1; i < data.length; i++) {
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = data[i][idx]; });
+    const payload = {
+      first_name: row.first_name || '',
+      last_name: row.last_name || '',
+      email: row.email || '',
+      phone: row.phone || '',
+      whatsapp: row.phone || '',
+      source: row.source || 'crm',
+      status: row.status || 'active',
+      tags: row.tags || '',
+      notes: row.notes || ''
+    };
+
+    const existing = row.email
+      ? ContactsRepo.findByEmail(row.email)
+      : ContactsRepo.findByPhone(row.phone);
+    if (existing) {
+      ContactsRepo.update(existing.contact_id, payload);
+    } else {
+      ContactsRepo.create(payload);
+    }
+    synced++;
+  }
+
+  return { ok: true, synced: synced };
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent

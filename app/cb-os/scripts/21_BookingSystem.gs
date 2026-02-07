@@ -222,7 +222,7 @@ function sendConfirmationEmail_(payload, event) {
     'Hizmet: ' + payload.service_type,
     'Notlar: ' + payload.notes
   ].join('\n');
-  GmailApp.sendEmail(payload.email, subject, body);
+  sendEmailSafe_(payload.email, subject, body);
 }
 
 function sendRescheduleEmail_(payload, suggestions) {
@@ -233,7 +233,7 @@ function sendRescheduleEmail_(payload, suggestions) {
     'Seçtiğiniz saat uygun değil. Alternatifler:',
     lines.join('\n')
   ].join('\n');
-  GmailApp.sendEmail(payload.email, subject, body);
+  sendEmailSafe_(payload.email, subject, body);
 }
 
 function sendDeclinedEmail_(payload) {
@@ -243,14 +243,11 @@ function sendDeclinedEmail_(payload) {
     'Seçtiğiniz tarih ve saat aralığında uygunluk bulunamadı.',
     'Dilerseniz farklı bir gün/saat ile tekrar talep oluşturabilirsiniz.'
   ].join('\n');
-  GmailApp.sendEmail(payload.email, subject, body);
+  sendEmailSafe_(payload.email, subject, body);
 }
 
 function createFollowupTask_(payload, event) {
   const due = new Date(event.getStartTime().getTime() - 24 * 60 * 60000);
-  TasksApp.getDefaultTaskList().createTask('Randevu hatırlatma: ' + payload.name, {
-    notes: payload.service_type,
-    due: due
-  });
+  createTaskAdvanced_('Randevu hatırlatma: ' + payload.name, payload.service_type, due);
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent

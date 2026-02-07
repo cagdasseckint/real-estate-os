@@ -203,7 +203,7 @@ function handleSendEmail_(action, ctx) {
   const to = renderTemplate_(action.to || '', ctx.payload);
   const subject = renderTemplate_(action.subject_template || '', ctx.payload);
   const body = renderTemplate_(action.body_template || '', ctx.payload);
-  GmailApp.sendEmail(to, subject, body);
+  sendEmailSafe_(to, subject, body);
   return { action: 'SEND_EMAIL', to: to };
 }
 
@@ -213,8 +213,8 @@ function handleCreateTask_(action, ctx) {
   const dueDays = Number(action.due_days_offset || 0);
   const due = new Date();
   due.setDate(due.getDate() + dueDays);
-  const task = TasksApp.getDefaultTaskList().createTask(title, { notes: notes, due: due });
-  return { action: 'CREATE_TASK', task_id: task.getId() };
+  const task = createTaskAdvanced_(title, notes, due);
+  return { action: 'CREATE_TASK', task_id: task ? task.id : '' };
 }
 
 function handleCreateCalendarEvent_(action, ctx) {

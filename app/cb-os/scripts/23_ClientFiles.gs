@@ -169,10 +169,11 @@ function createOnboardingTasks_(contact) {
   for (const taskDef of tasks) {
     const due = new Date();
     due.setDate(due.getDate() + Number(taskDef.due_days || 0));
-    TasksApp.getDefaultTaskList().createTask(taskDef.title, {
-      notes: 'Contact: ' + contact.first_name + ' ' + contact.last_name,
-      due: due
-    });
+    createTaskAdvanced_(
+      taskDef.title,
+      'Contact: ' + contact.first_name + ' ' + contact.last_name,
+      due
+    );
   }
 }
 
