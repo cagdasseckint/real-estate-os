@@ -131,9 +131,13 @@ function ingest_process_job(ctx) {
  * @param {string} message - Additional message
  */
 function logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, notes, message) {
-  if (typeof logJobRun_ === 'function') {
-    logJobRun_(ctx, jobName, cursorBefore, cursorAfter, notes, message);
-    return;
+  try {
+    if (typeof logJobRun_ === 'function') {
+      logJobRun_(ctx, jobName, cursorBefore, cursorAfter, notes, message);
+      return;
+    }
+  } catch (e) {
+    // Fallback to Logger below when logJobRun_ is unavailable.
   }
   Logger.log('JOB_RUN_LOG | ' + jobName + ' | cursor: ' + cursorBefore + ' -> ' + cursorAfter +
              ' | notes=' + (notes || '') + ' | message=' + (message || ''));

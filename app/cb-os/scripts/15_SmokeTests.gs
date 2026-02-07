@@ -126,7 +126,7 @@ function createJobContextSafe_() {
   }
   const timezone = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
     ? cfg_('TIMEZONE', DEFAULTS.TIMEZONE)
-    : (Session && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
+    : (typeof Session !== 'undefined' && Session.getScriptTimeZone ? Session.getScriptTimeZone() : 'UTC');
   const batchSize = (typeof cfg_ === 'function' && typeof DEFAULTS !== 'undefined')
     ? cfg_('ORCH_BATCH_SIZE', DEFAULTS.ORCH_BATCH_SIZE)
     : 50;
