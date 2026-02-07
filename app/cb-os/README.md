@@ -90,6 +90,16 @@ refreshUnifiedTables_({
 refreshDashboardCharts_()
 ```
 
+### 5.1.1 HTML Live Dashboard Panel
+
+Apps Script editörde canlı HTML panelini açmak için:
+
+```javascript
+showDashboardPanel()
+```
+
+Panel, KPI kartları ve canlı grafiklerle pipeline, lead source ve günlük snapshot akışını gösterir.
+
 ### 5.2 Gap Coverage Mini-Modüller
 
 GHL/Masternex boşluklarını Google araçlarıyla kapatmak için temel mini-modüller:

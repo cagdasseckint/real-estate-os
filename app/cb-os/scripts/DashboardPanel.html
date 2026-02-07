@@ -1,0 +1,225 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, sans-serif;
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --text: #1f2a44;
+        --muted: #6b7280;
+        --accent: #2563eb;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        padding: 16px;
+        background: var(--card);
+        border-bottom: 1px solid #e5e7eb;
+      }
+      header h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .container {
+        padding: 16px;
+        display: grid;
+        gap: 16px;
+      }
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--card);
+        border-radius: 10px;
+        padding: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      }
+      .card h3 {
+        font-size: 12px;
+        color: var(--muted);
+        margin: 0 0 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .card .value {
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .chart {
+        height: 260px;
+      }
+      .row {
+        display: grid;
+        gap: 12px;
+      }
+      .ops-list {
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .refresh {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+    </style>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>CB-OS Live Dashboard</h1>
+      <p>Gayrimenkul danışmanı operasyonları için canlı KPI + grafik akışı</p>
+    </header>
+    <div class="container">
+      <div class="refresh">
+        <span id="lastUpdated">Veri bekleniyor...</span>
+        <button onclick="refreshAll()">Yenile</button>
+      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="row">
+        <div class="card">
+          <h3>Pipeline Stage Dağılımı</h3>
+          <div id="pipelineChart" class="chart"></div>
+        </div>
+        <div class="card">
+          <h3>Lead Source</h3>
+          <div id="leadSourceChart" class="chart"></div>
+        </div>
+        <div class="card">
+          <h3>Günlük Snapshot</h3>
+          <div id="dailyChart" class="chart"></div>
+        </div>
+        <div class="card">
+          <h3>Ops Sağlığı</h3>
+          <div class="ops-list" id="opsStats"></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      google.charts.load('current', { packages: ['corechart', 'bar'] });
+      google.charts.setOnLoadCallback(refreshAll);
+
+      function refreshAll() {
+        google.script.run.withSuccessHandler(renderDashboard).getDashboardPanelData_();
+      }
+
+      function renderDashboard(data) {
+        document.getElementById('lastUpdated').textContent =
+          'Güncellendi: ' + (data.run_at || '-');
+        renderKpis(data.kpis || {});
+        renderPipelineChart(data.pipeline || []);
+        renderLeadSourceChart(data.lead_sources || []);
+        renderDailyChart(data.daily_snapshots || []);
+        renderOpsStats(data.ops || {});
+      }
+
+      function renderKpis(kpis) {
+        const entries = [
+          ['Toplam Contact', kpis.contacts_total],
+          ['Toplam Deal', kpis.deals_total],
+          ['Açık Task', kpis.tasks_open],
+          ['Geciken Task', kpis.tasks_overdue],
+          ['SLA Aşımı', kpis.sla_first_touch_breach],
+          ['Stuck Stage', kpis.stuck_stage_over_threshold]
+        ];
+        const grid = document.getElementById('kpiGrid');
+        grid.innerHTML = '';
+        entries.forEach(([label, value]) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `<h3>${label}</h3><div class="value">${value ?? 0}</div>`;
+          grid.appendChild(card);
+        });
+      }
+
+      function renderPipelineChart(rows) {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Stage');
+        data.addColumn('number', 'Count');
+        rows.forEach(row => {
+          data.addRow([`${row.deal_type} | ${row.stage}`, Number(row.count || 0)]);
+        });
+        const chart = new google.visualization.BarChart(document.getElementById('pipelineChart'));
+        chart.draw(data, {
+          legend: { position: 'none' },
+          height: 240,
+          colors: ['#2563eb'],
+          chartArea: { width: '70%', height: '70%' }
+        });
+      }
+
+      function renderLeadSourceChart(rows) {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Source');
+        data.addColumn('number', 'Count');
+        rows.forEach(row => {
+          data.addRow([row.lead_source || '-', Number(row.count || 0)]);
+        });
+        const chart = new google.visualization.PieChart(document.getElementById('leadSourceChart'));
+        chart.draw(data, {
+          pieHole: 0.45,
+          height: 240,
+          chartArea: { width: '90%', height: '80%' },
+          legend: { position: 'right' }
+        });
+      }
+
+      function renderDailyChart(rows) {
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Date');
+        data.addColumn('number', 'Leads');
+        data.addColumn('number', 'Deals');
+        rows.forEach(row => {
+          data.addRow([
+            row.snapshot_date || '',
+            Number(row.leads_created || 0),
+            Number(row.deals_created || 0)
+          ]);
+        });
+        const chart = new google.visualization.LineChart(document.getElementById('dailyChart'));
+        chart.draw(data, {
+          height: 240,
+          colors: ['#22c55e', '#2563eb'],
+          chartArea: { width: '80%', height: '70%' },
+          legend: { position: 'bottom' }
+        });
+      }
+
+      function renderOpsStats(ops) {
+        const el = document.getElementById('opsStats');
+        const html = [
+          `Ingest pending: ${ops.ingest_pending ?? 0}`,
+          `DLQ count: ${ops.dlq_count ?? 0}`,
+          `Error rate: ${(ops.error_rate ?? 0).toFixed(2)}`,
+          `Cursor drift (min): ${ops.cursor_drift_minutes ?? 0}`
+        ];
+        el.innerHTML = html.map(line => `<div>${line}</div>`).join('');
+      }
+    </script>
+  </body>
+</html>
