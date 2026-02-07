@@ -78,6 +78,7 @@ function ingest_process_job(ctx) {
         }
         
         result.stopped_on_failure = true;
+        cursorAfter = cursorBefore;
         
         // Gap-free: log and break for transient errors
         logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, 
@@ -93,6 +94,7 @@ function ingest_process_job(ctx) {
       QueueRepo.markFailed(item._rowIndex, item, 'Unexpected error: ' + e.message, 'transient');
       result.failed++;
       result.stopped_on_failure = true;
+      cursorAfter = cursorBefore;
       
       logJobRunSafe_(ctx, jobName, cursorBefore, cursorAfter, 
                      AUDIT_CONTRACT_STRING, 
