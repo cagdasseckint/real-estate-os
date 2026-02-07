@@ -53,6 +53,22 @@ const SHEETS = {
   CONSENTS: 'CONSENTS',
   CONVERSION_QUEUE: 'CONVERSION_QUEUE',
   SMOKE_TEST_LOG: 'SMOKE_TEST_LOG',
+  UNIFIED_TABLES: 'UNIFIED_TABLES',
+  DASHBOARD_CHARTS: 'DASHBOARD_CHARTS',
+  DASHBOARD_SUMMARY: 'DASHBOARD_SUMMARY',
+  DASHBOARD_PIPELINE: 'DASHBOARD_PIPELINE',
+  DASHBOARD_LEAD_SOURCES: 'DASHBOARD_LEAD_SOURCES',
+  DASHBOARD_SLA: 'DASHBOARD_SLA',
+  REPUTATION_FEEDBACK: 'REPUTATION_FEEDBACK',
+  PORTAL_LINKS: 'PORTAL_LINKS',
+  OFFLINE_CONVERSIONS: 'OFFLINE_CONVERSIONS',
+  CONTENT_LIBRARY: 'CONTENT_LIBRARY',
+  ADS_ATTRIBUTION_SUMMARY: 'ADS_ATTRIBUTION_SUMMARY',
+  BOOKING_SUMMARY: 'BOOKING_SUMMARY',
+  EMAIL_OUTREACH_SUMMARY: 'EMAIL_OUTREACH_SUMMARY',
+  TENANTS: 'TENANTS',
+  COURSE_SESSIONS: 'COURSE_SESSIONS',
+  KNOWLEDGE_BASE: 'KNOWLEDGE_BASE',
   
   // Dashboard Tables
   DAILY_SNAPSHOT: 'DAILY_SNAPSHOT',
@@ -240,6 +256,68 @@ const CANONICAL_HEADERS = {
   
   SMOKE_TEST_LOG: [
     'run_at', 'test_name', 'result', 'notes'
+  ],
+
+  UNIFIED_TABLES: [
+    'source_table', 'row_id', 'updated_at', 'data_json'
+  ],
+
+  DASHBOARD_SUMMARY: [
+    'metric', 'value', 'run_at'
+  ],
+
+  DASHBOARD_PIPELINE: [
+    'deal_type', 'stage', 'count', 'run_at'
+  ],
+
+  DASHBOARD_LEAD_SOURCES: [
+    'lead_source', 'count', 'run_at'
+  ],
+
+  DASHBOARD_SLA: [
+    'metric', 'count', 'run_at'
+  ],
+
+  REPUTATION_FEEDBACK: [
+    'feedback_id', 'submitted_at', 'contact_id', 'deal_id', 'rating', 'comment',
+    'source', 'status'
+  ],
+
+  PORTAL_LINKS: [
+    'contact_id', 'contact_name', 'drive_folder_url', 'summary_doc_url', 'updated_at'
+  ],
+
+  OFFLINE_CONVERSIONS: [
+    'conversion_id', 'gclid', 'conversion_time', 'conversion_value', 'currency',
+    'conversion_name', 'status'
+  ],
+
+  CONTENT_LIBRARY: [
+    'content_id', 'title', 'type', 'drive_url', 'access_level', 'notes', 'updated_at'
+  ],
+
+  ADS_ATTRIBUTION_SUMMARY: [
+    'metric', 'value', 'run_at'
+  ],
+
+  BOOKING_SUMMARY: [
+    'metric', 'value', 'run_at'
+  ],
+
+  EMAIL_OUTREACH_SUMMARY: [
+    'metric', 'value', 'run_at'
+  ],
+
+  TENANTS: [
+    'tenant_id', 'tenant_name', 'workbook_id', 'drive_root_id', 'status', 'created_at'
+  ],
+
+  COURSE_SESSIONS: [
+    'session_id', 'title', 'meeting_link', 'scheduled_at', 'host_email', 'notes', 'status'
+  ],
+
+  KNOWLEDGE_BASE: [
+    'kb_id', 'title', 'category', 'doc_url', 'owner', 'updated_at'
   ]
 };
 

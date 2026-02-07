@@ -53,8 +53,15 @@ Bu sıra “locked” olup değiştirilemez; trigger kurulumu Apps Script üzeri
   `DOCUMENT_CHECKLISTS`, `VIEWINGS`, `OFFERS`, `PRICE_CHANGES`, `MARKETING_ASSETS`,
   `CONSENTS`, `CONVERSION_QUEUE`, `SMOKE_TEST_LOG`【F:app/cb-os/scripts/02_Constants.gs†L15-L204】
 
-### 3.4 Dashboard Tabloları
-- `DAILY_SNAPSHOT`, `WEEKLY_SUMMARY`【F:app/cb-os/scripts/02_Constants.gs†L112-L124】
+### 3.4 Dashboard & Coverage Tabloları
+- `UNIFIED_TABLES`, `DASHBOARD_CHARTS`, `DASHBOARD_SUMMARY`, `DASHBOARD_PIPELINE`,
+  `DASHBOARD_LEAD_SOURCES`, `DASHBOARD_SLA`【F:app/cb-os/scripts/02_Constants.gs†L52-L264】
+- `REPUTATION_FEEDBACK`, `PORTAL_LINKS`, `OFFLINE_CONVERSIONS`, `CONTENT_LIBRARY`,
+  `ADS_ATTRIBUTION_SUMMARY`, `BOOKING_SUMMARY`, `EMAIL_OUTREACH_SUMMARY`【F:app/cb-os/scripts/02_Constants.gs†L52-L264】
+- `TENANTS`, `COURSE_SESSIONS`, `KNOWLEDGE_BASE`【F:app/cb-os/scripts/02_Constants.gs†L52-L264】
+
+### 3.5 Dashboard Snapshot Tabloları
+- `DAILY_SNAPSHOT`, `WEEKLY_SUMMARY`【F:app/cb-os/scripts/02_Constants.gs†L112-L241】
 
 ## 4) Konfigürasyon & Varsayılanlar
 
@@ -151,6 +158,11 @@ Sistemin desteklediği ingest türleri:
 ### 8.6 Listings & Compliance
 - Property, Agreements, Consents, Conversion Queue için minimal CRUD ve event logging.
 - Listing oluşturma → event log; consent ve conversion queue kayıtları append edilir.【F:app/cb-os/scripts/24_ListingsAndCompliance.gs†L1-L94】
+
+### 8.7 Dashboard & Coverage Utilities
+- Unified table ve dashboard summary/pipeline/lead source/SLA tabloları üretilir.
+- Gap coverage özetleri: Ads attribution, booking, Gmail outreach; ayrıca reputation feedback, portal link index ve offline conversions export tabları.
+- Partial coverage tabları: tenants, course sessions ve knowledge base kayıtları.【F:app/cb-os/scripts/25_Dashboard.gs†L1-L269】【F:app/cb-os/scripts/26_GapCoverage.gs†L1-L167】【F:app/cb-os/scripts/27_PartialCoverage.gs†L1-L77】
 
 ## 9) Test, Audit ve Governance
 
