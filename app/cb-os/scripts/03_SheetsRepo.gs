@@ -156,6 +156,10 @@ function bootstrapSheets_() {
   if (report.created.includes(SHEETS.FOLLOWUP_SEQUENCES)) {
     seedDefaultFollowupSequences_();
   }
+
+  if (report.created.includes(SHEETS.STAGE_AUTOMATIONS)) {
+    seedDefaultStageAutomations_();
+  }
   
   if (report.created.includes(SHEETS.SECURITY_SOP)) {
     seedSecuritySop_();
@@ -299,7 +303,30 @@ function seedDefaultTaskTemplates_() {
   const templates = [
     ['first_touch', 'first_touch', 'DEAL', 'İlk temas yap', 'Lead ile ilk iletişimi kur', 'high', 1, '', 1, 'task', ''],
     ['followup_48h', 'followup_48h', 'DEAL', '48 saat takip', '48 saat içinde takip iletişimi yap', 'medium', '', 48, 2, 'task', ''],
-    ['close_checklist', 'close_checklist', 'DEAL', 'Closing checklist', 'Kapanış için gerekli tüm maddeleri tamamla', 'high', 1, '', 1, 'task', '']
+    ['close_checklist', 'close_checklist', 'DEAL', 'Closing checklist', 'Kapanış için gerekli tüm maddeleri tamamla', 'high', 1, '', 1, 'task', ''],
+    ['portf_yetki_form', 'portf_yetki_form', 'DEAL', 'Yetki belgesi + intranet formu tamamla', 'Yetki belgesi ve intranet formu eksiksiz doldurulacak', 'high', 0, '', '', 'admin', ''],
+    ['portf_tapu_copy', 'portf_tapu_copy', 'DEAL', 'Tapu fotokopisi al', 'Tapu fotokopisi sisteme yüklenecek', 'high', 1, '', '', 'admin', ''],
+    ['portf_tapu_signature', 'portf_tapu_signature', 'DEAL', 'Tapu sahibi imzası / vekalet al', 'İmza veya vekalet örneği temin edilecek', 'high', 2, '', '', 'admin', ''],
+    ['portf_listing_publish', 'portf_listing_publish', 'DEAL', 'İlanları 3 gün içinde yayınla', 'CB, Sahibinden, Hürriyet, Zingat, Emlakjet', 'high', 3, '', '', 'marketing', ''],
+    ['portf_listing_content', 'portf_listing_content', 'DEAL', 'İlan içerik kontrolü', 'Başlık küçük harf, 10+ cümle açıklama, çevre/ulaşım bilgisi', 'high', 3, '', '', 'marketing', ''],
+    ['portf_branda', 'portf_branda', 'DEAL', 'Branda as ve fotoğrafı ilet', 'Branda fotoğrafı + açık adres', 'medium', 5, '', '', 'onsite', ''],
+    ['portf_brochure', 'portf_brochure', 'DEAL', '1000 adet broşür dağıt', '“DUYDUNUZ MU?” broşürü 10 gün içinde dağıtılacak', 'medium', 10, '', '', 'marketing', ''],
+    ['portf_newspaper', 'portf_newspaper', 'DEAL', 'Gazete ilanı ver', '10 gün içinde gazeteye ilan', 'medium', 10, '', '', 'marketing', ''],
+    ['portf_media_shoot', 'portf_media_shoot', 'DEAL', 'Fotoğraf/video/drone çekimi', '10 gün içinde çekim yapılacak', 'medium', 10, '', '', 'media', ''],
+    ['portf_cooperation', 'portf_cooperation', 'DEAL', 'Cooperation çalışması', 'İş ortakları ile portföy iş birliği', 'medium', 7, '', '', 'marketing', ''],
+    ['portf_newsletter', 'portf_newsletter', 'DEAL', 'Gayrimenkul haber bülteni', 'Portföy bülteninde yayınla', 'medium', 7, '', '', 'marketing', ''],
+    ['portf_profile_mail', 'portf_profile_mail', 'DEAL', 'Hedef profil postalamasi', 'Hedef profile postalama / dağıtım', 'medium', 7, '', '', 'marketing', ''],
+    ['portf_door_knock', 'portf_door_knock', 'DEAL', 'Çat kapı alıcılar', 'Bölge içinde çat kapı ziyaretleri', 'medium', 7, '', '', 'onsite', ''],
+    ['portf_open_invite', 'portf_open_invite', 'DEAL', 'Açık davet', 'Açık davet / open house planla', 'medium', 14, '', '', 'onsite', ''],
+    ['portf_rpa', 'portf_rpa', 'DEAL', 'RPA yap ve mail gönder', 'Sevgi Hançer’e bbc-cc mail', 'high', 2, '', '', 'admin', ''],
+    ['portf_social_share', 'portf_social_share', 'DEAL', 'Sosyal medya paylaşımı', 'CB.COM linki ile paylaşım', 'medium', 3, '', '', 'marketing', ''],
+    ['portf_referral', 'portf_referral', 'DEAL', 'Referral çalışması', 'Referans kanalıyla portföy duyurusu', 'medium', 7, '', '', 'marketing', ''],
+    ['portf_profile_page', 'portf_profile_page', 'DEAL', 'Portföy profil sayfası', 'Portföy profil sayfası hazırla', 'medium', 5, '', '', 'marketing', ''],
+    ['portf_mas', 'portf_mas', 'DEAL', 'MAS', 'MAS kanalı üzerinden pazarlama', 'medium', 7, '', '', 'marketing', ''],
+    ['portf_buyer_profile', 'portf_buyer_profile', 'DEAL', 'Alıcı profil çalışması', 'Alıcı profili çıkarma ve eşleştirme', 'medium', 7, '', '', 'marketing', ''],
+    ['portf_weekly_call', 'portf_weekly_call', 'DEAL', 'Haftalık bilgilendirme araması', 'Cuma/Cumartesi arama yapılacak', 'medium', 7, '', '', 'phone', ''],
+    ['portf_presentation_send', 'portf_presentation_send', 'DEAL', 'Sunum dosyası gönder', 'Yetki alan kişiye sunum dosyası e-mail/WhatsApp', 'medium', 3, '', '', 'email', ''],
+    ['portf_print_approval', 'portf_print_approval', 'DEAL', 'Branda/afiş/broşür onay al', 'Baskı öncesi ofis direktörü onayı', 'high', 1, '', '', 'admin', '']
   ];
   
   sheet.getRange(2, 1, templates.length, templates[0].length).setValues(templates);
@@ -317,11 +344,57 @@ function seedDefaultFollowupSequences_() {
     { offset_days: 7, action: 'email', subject: 'Takip', body: 'Merhaba, tekrar iletişime geçiyorum.' },
     { offset_days: 14, action: 'email', subject: 'Takip - 2', body: 'Merhaba, tekrar dönüş rica ederim.' }
   ]);
+
+  const portfoySteps = JSON.stringify([
+    { offset_days: 10, action: 'email', subject: 'Portföy Bilgilendirme Raporu (İlk 10 Gün)', body: 'Merhaba {{owner_name}},\n\nPortföyünüz için ilk 10 gün içinde yapılan çalışmaların özeti:\n- Arayanlar: {{inbound_calls}}\n- Portföyü görenlerin genel fikirleri: {{viewer_feedback}}\n- Teklifler: {{offers_summary}}\n\nNot: Tekliflerin WhatsApp üzerinden yapılmaması, e-posta ya da yüz yüze iletilmesi esastır.\n\nSaygılarımızla,\n{{agent_name}}' },
+    { offset_days: 30, action: 'email', subject: 'Portföy Bilgilendirme Raporu (30. Gün)', body: 'Merhaba {{owner_name}},\n\nPortföyünüz için 30. gün raporu:\n- Arayanlar: {{inbound_calls}}\n- Portföyü görenlerin genel fikirleri: {{viewer_feedback}}\n- Teklifler: {{offers_summary}}\n\nSaygılarımızla,\n{{agent_name}}' },
+    { offset_days: 50, action: 'email', subject: 'Portföy Bilgilendirme Raporu (50. Gün)', body: 'Merhaba {{owner_name}},\n\nPortföyünüz için 50. gün raporu:\n- Arayanlar: {{inbound_calls}}\n- Portföyü görenlerin genel fikirleri: {{viewer_feedback}}\n- Teklifler: {{offers_summary}}\n\nSaygılarımızla,\n{{agent_name}}' },
+    { offset_days: 7, action: 'task', template: 'portf_weekly_call' },
+    { offset_days: 3, action: 'task', template: 'portf_social_share' }
+  ]);
   
   const rows = [
-    ['followup_default', 'Default Follow-up', '*', '*', steps, true]
+    ['followup_default', 'Default Follow-up', '*', '*', steps, true],
+    ['portfoy_intake', 'Portföy Bilgilendirme', 'SELLER', 'LISTING_SIGNED', portfoySteps, true]
   ];
   
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+/**
+ * Seed default stage automations
+ */
+function seedDefaultStageAutomations_() {
+  const sheet = sheet_(SHEETS.STAGE_AUTOMATIONS, false);
+  if (!sheet) return;
+
+  const rows = [
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_yetki_form'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_tapu_copy'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_tapu_signature'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_listing_publish'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_listing_content'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_branda'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_brochure'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_newspaper'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_media_shoot'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_cooperation'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_newsletter'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_profile_mail'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_door_knock'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_open_invite'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_rpa'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_social_share'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_referral'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_profile_page'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_mas'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_buyer_profile'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_weekly_call'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_presentation_send'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'TASK_TEMPLATE', '', '', 'portf_print_approval'],
+    ['SELLER', '*', 'LISTING_SIGNED', '', 'FOLLOWUP_SEQUENCE', '', '', '']
+  ];
+
   sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
 }
 

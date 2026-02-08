@@ -24,11 +24,21 @@ const ContactsRepo = {
       source: data.source || '',
       source_ref_id: data.source_ref_id || '',
       status: data.status || 'active',
-      tags: data.tags || '',
+      tags: normalizeTags_(data.tags || ''),
       notes: data.notes || '',
       kvkk_consent: data.kvkk_consent || 'pending',
       preferred_contact_method: data.preferred_contact_method || 'phone',
-      last_contact_at: ''
+      last_contact_at: '',
+      phone_alt: data.phone_alt || '',
+      profession: data.profession || '',
+      address: data.address || '',
+      fax: data.fax || '',
+      work_phone: data.work_phone || '',
+      authorized_name: data.authorized_name || '',
+      authorized_phone: data.authorized_phone || '',
+      contact_role: data.contact_role || '',
+      follow_up: data.follow_up || '',
+      next_contact_at: data.next_contact_at || ''
     };
     
     const rowNum = appendRow_(SHEETS.CONTACTS, contact);
@@ -80,7 +90,9 @@ const ContactsRepo = {
   update: function(contactId, updates) {
     const contact = this.findById(contactId);
     if (!contact) return false;
-    
+    if (Object.prototype.hasOwnProperty.call(updates, 'tags')) {
+      updates.tags = normalizeTags_(updates.tags || '');
+    }
     updates.updated_at = nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE));
     updateRow_(SHEETS.CONTACTS, contact._rowIndex, updates);
     
@@ -154,5 +166,47 @@ function normalizePhone_(phone) {
   if (!phone) return '';
   // Remove all non-digit characters
   return String(phone).replace(/\D/g, '');
+}
+
+/**
+ * Normalize tags and validate against allowed taxonomy.
+ * @param {string} tags - Comma-separated tags
+ * @returns {string} Normalized comma-separated tags
+ */
+function normalizeTags_(tags) {
+  if (!tags) return '';
+  const normalized = String(tags)
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean);
+  validateContactTags_(normalized);
+  return normalized.join(',');
+}
+
+/**
+ * Validate contact tags against allowed taxonomy or prefixes.
+ * @param {Array<string>} tags - Normalized tags
+ */
+function validateContactTags_(tags) {
+  if (!tags || !tags.length) return;
+  const allowed = new Set(CONTACT_TAGS);
+  const invalid = tags.filter(tag => !isAllowedContactTag_(tag, allowed));
+  if (invalid.length) {
+    throw new Error('Invalid CONTACTS.tags value(s): ' + invalid.join(', '));
+  }
+}
+
+/**
+ * Check if tag is allowed via taxonomy or prefix.
+ * @param {string} tag - Tag value
+ * @param {Set<string>} allowed
+ * @returns {boolean}
+ */
+function isAllowedContactTag_(tag, allowed) {
+  if (allowed.has(tag)) return true;
+  const parts = String(tag).split(':');
+  if (parts.length < 2) return false;
+  const prefix = parts[0].trim();
+  return CONTACT_TAG_PREFIXES.indexOf(prefix) !== -1;
 }
 // Çağdaş Seçkin Tüfekci - Real Estate Agent

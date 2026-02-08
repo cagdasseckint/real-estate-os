@@ -133,6 +133,26 @@ const DealsRepo = {
       };
     }
     
+    if (newStage === 'LISTING_SIGNED') {
+      const property = ListingsRepo.findByDealId(dealId);
+      const propertyValidation = validatePropertyCompliance_(property);
+      if (!propertyValidation.ok) {
+        return {
+          success: false,
+          message: 'Property compliance missing fields: ' + propertyValidation.missing.join(', ')
+        };
+      }
+
+      const agreement = AgreementsRepo.findByPropertyId(property.property_id);
+      const agreementValidation = validateAgreementCompliance_(agreement);
+      if (!agreementValidation.ok) {
+        return {
+          success: false,
+          message: 'Agreement compliance missing fields: ' + agreementValidation.missing.join(', ')
+        };
+      }
+    }
+
     const oldStage = deal.stage;
     this.update(dealId, { stage: newStage });
     
