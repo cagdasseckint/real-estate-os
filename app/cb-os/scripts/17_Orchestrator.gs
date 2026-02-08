@@ -357,6 +357,7 @@ function guardrails_job(ctx) {
     // Ops dashboard snapshot
     updateOpsDashboard_();
     updateDailySnapshot_();
+    refreshFinanceDashboard_();
     archiveOperationalTables_();
     
     // Drive share audit
