@@ -1176,6 +1176,10 @@
       viewExec:'Yönetici',
       viewOps:'Ops',
       viewCompliance:'Uyum',
+      alertErrorRate:'Hata',
+      alertCursor:'Cursor',
+      alertDlq:'DLQ',
+      alertOverdue:'Geciken',
     },
     EN: {
       title:'Monitoring Panel',
@@ -1220,6 +1224,10 @@
       viewExec:'Executive',
       viewOps:'Ops',
       viewCompliance:'Compliance',
+      alertErrorRate:'Error',
+      alertCursor:'Cursor',
+      alertDlq:'DLQ',
+      alertOverdue:'Overdue',
     }
   };
 
@@ -1915,17 +1923,18 @@
     const alerts = [];
     const ops = data.ops || {};
     const kpis = data.kpis || {};
+    const t = I18N[Store.state.ui.lang];
     if (Number(ops.error_rate || 0) >= 0.05){
-      alerts.push({ level:'alert', text: `${(ops.error_rate * 100).toFixed(1)}% Error` });
+      alerts.push({ level:'alert', text: `${(ops.error_rate * 100).toFixed(1)}% ${t.alertErrorRate}` });
     }
     if (Number(ops.cursor_drift_minutes || 0) >= 60){
-      alerts.push({ level:'warn', text: `Cursor ${ops.cursor_drift_minutes}m` });
+      alerts.push({ level:'warn', text: `${t.alertCursor} ${ops.cursor_drift_minutes}m` });
     }
     if (Number(ops.dlq_count || 0) > 0){
-      alerts.push({ level:'warn', text: `DLQ ${ops.dlq_count}` });
+      alerts.push({ level:'warn', text: `${t.alertDlq} ${ops.dlq_count}` });
     }
     if (Number(kpis.tasks_overdue || 0) > 0){
-      alerts.push({ level:'warn', text: `Overdue ${kpis.tasks_overdue}` });
+      alerts.push({ level:'warn', text: `${t.alertOverdue} ${kpis.tasks_overdue}` });
     }
     alerts.forEach(a=>{
       const span = document.createElement('span');
