@@ -27,6 +27,9 @@ function runAuditChecks() {
   
   // Check 5: audit contract string exact match
   results.checks.push(audit_contractStringExact_());
+
+  // Check 6: payload size validation
+  results.checks.push(audit_payloadSize_());
   
   // Determine NNO-1 result
   for (const check of results.checks) {
@@ -186,6 +189,44 @@ function audit_offsetConsistency_() {
     details: {
       offsets: validation.offsets,
       message: validation.message
+    }
+  };
+}
+
+/**
+ * Audit Check 6: payload size validation in INGEST_QUEUE
+ */
+function audit_payloadSize_() {
+  const checkName = 'payload_size_limit';
+  Logger.log('AUDIT | ' + checkName + ' | START');
+
+  const limitKb = Number(cfg_('MAX_PAYLOAD_SIZE_KB', DEFAULTS.MAX_PAYLOAD_SIZE_KB)) || 64;
+  const queueData = getSheetData_(SHEETS.INGEST_QUEUE);
+  let violations = 0;
+  const examples = [];
+
+  for (const row of queueData) {
+    const payload = row.payload_json || '';
+    const bytes = Utilities.newBlob(String(payload)).getBytes().length;
+    const sizeKb = Math.round(bytes / 1024 * 100) / 100;
+    if (sizeKb > limitKb) {
+      violations++;
+      if (examples.length < 3) {
+        examples.push({
+          ingest_id: row.ingest_id || '',
+          size_kb: sizeKb
+        });
+      }
+    }
+  }
+
+  return {
+    name: checkName,
+    result: violations === 0 ? 'PASS' : 'FAIL',
+    details: {
+      limit_kb: limitKb,
+      violations: violations,
+      examples: examples
     }
   };
 }
