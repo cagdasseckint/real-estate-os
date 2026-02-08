@@ -112,6 +112,28 @@ function bootstrapSheets_() {
     SHEETS.TENANTS,
     SHEETS.COURSE_SESSIONS,
     SHEETS.KNOWLEDGE_BASE,
+    SHEETS.OPEN_HOUSES,
+    SHEETS.OPEN_HOUSE_SIGNINS,
+    SHEETS.OPEN_HOUSE_FOLLOWUPS,
+    SHEETS.BUYER_PROFILES,
+    SHEETS.SELLER_PROFILES,
+    SHEETS.TIME_LOGS,
+    SHEETS.CHART_OF_ACCOUNTS,
+    SHEETS.GENERAL_LEDGER,
+    SHEETS.TENANT_LEDGER,
+    SHEETS.LANDLORD_LEDGER,
+    SHEETS.CLOSING_COSTS,
+    SHEETS.LISTING_EXPENSES,
+    SHEETS.INVESTMENT_ANALYSIS,
+    SHEETS.MORTGAGE_CALC,
+    SHEETS.RENT_BUY_ANALYSIS,
+    SHEETS.QUOTATIONS,
+    SHEETS.INVOICES,
+    SHEETS.RECEIPTS,
+    SHEETS.PROJECTS,
+    SHEETS.MILESTONES,
+    SHEETS.PROJECT_BUDGETS,
+    SHEETS.ROLE_VIEWS,
     SHEETS.FIN_PARAMS,
     SHEETS.FIN_PLAN,
     SHEETS.FIN_MONTHLY,
@@ -192,6 +214,42 @@ function bootstrapSheets_() {
     SHEETS.FIN_DASH_FX
   ].includes(name))) {
     seedFinanceSheets_();
+  }
+
+  if (report.created.some(name => [
+    SHEETS.CHART_OF_ACCOUNTS,
+    SHEETS.GENERAL_LEDGER,
+    SHEETS.TENANT_LEDGER,
+    SHEETS.LANDLORD_LEDGER
+  ].includes(name))) {
+    seedDefaultLedgerAccounts_();
+  }
+
+  if (report.created.some(name => [
+    SHEETS.OPEN_HOUSES,
+    SHEETS.OPEN_HOUSE_SIGNINS,
+    SHEETS.OPEN_HOUSE_FOLLOWUPS,
+    SHEETS.BUYER_PROFILES,
+    SHEETS.SELLER_PROFILES,
+    SHEETS.TIME_LOGS,
+    SHEETS.CLOSING_COSTS,
+    SHEETS.LISTING_EXPENSES,
+    SHEETS.INVESTMENT_ANALYSIS,
+    SHEETS.MORTGAGE_CALC,
+    SHEETS.RENT_BUY_ANALYSIS,
+    SHEETS.QUOTATIONS,
+    SHEETS.INVOICES,
+    SHEETS.RECEIPTS,
+    SHEETS.PROJECTS,
+    SHEETS.MILESTONES,
+    SHEETS.PROJECT_BUDGETS,
+    SHEETS.ROLE_VIEWS
+  ].includes(name))) {
+    seedExtensionsDefaults_();
+  }
+
+  if (typeof applyUiValidations_ === 'function') {
+    applyUiValidations_();
   }
   
   Logger.log('BOOTSTRAP | Report: ' + JSON.stringify(report));
@@ -311,7 +369,19 @@ function seedDefaultConfig_() {
     ['SMOKE_CHECKED_BY', DEFAULTS.SMOKE_CHECKED_BY, 'Default smoke test checked_by'],
     ['MODULES_CRM_ENABLED', DEFAULTS.MODULES_CRM_ENABLED, 'Enable CRM module (19_CrmPipeline)'],
     ['MODULES_WORKFLOW_ENABLED', DEFAULTS.MODULES_WORKFLOW_ENABLED, 'Enable workflow engine module (20_WorkflowEngine)'],
-    ['MODULES_LEAD_CAPTURE_ENABLED', DEFAULTS.MODULES_LEAD_CAPTURE_ENABLED, 'Enable lead capture module (22_LeadCapture)']
+    ['MODULES_LEAD_CAPTURE_ENABLED', DEFAULTS.MODULES_LEAD_CAPTURE_ENABLED, 'Enable lead capture module (22_LeadCapture)'],
+    ['MODULES_OPEN_HOUSE_ENABLED', DEFAULTS.MODULES_OPEN_HOUSE_ENABLED, 'Enable open house/sign-in module'],
+    ['MODULES_PROFILES_ENABLED', DEFAULTS.MODULES_PROFILES_ENABLED, 'Enable buyer/seller profile module'],
+    ['MODULES_TIMESHEET_ENABLED', DEFAULTS.MODULES_TIMESHEET_ENABLED, 'Enable timesheet/time log module'],
+    ['MODULES_LEDGER_ENABLED', DEFAULTS.MODULES_LEDGER_ENABLED, 'Enable chart of accounts/ledger module'],
+    ['MODULES_CLOSING_COSTS_ENABLED', DEFAULTS.MODULES_CLOSING_COSTS_ENABLED, 'Enable closing costs breakdown module'],
+    ['MODULES_LISTING_EXPENSES_ENABLED', DEFAULTS.MODULES_LISTING_EXPENSES_ENABLED, 'Enable listing expense tracker module'],
+    ['MODULES_INVESTMENT_ENABLED', DEFAULTS.MODULES_INVESTMENT_ENABLED, 'Enable investment analysis module'],
+    ['MODULES_MORTGAGE_ENABLED', DEFAULTS.MODULES_MORTGAGE_ENABLED, 'Enable mortgage calculators module'],
+    ['MODULES_DOCS_BILLING_ENABLED', DEFAULTS.MODULES_DOCS_BILLING_ENABLED, 'Enable quotation/invoice/receipt module'],
+    ['MODULES_PROJECTS_ENABLED', DEFAULTS.MODULES_PROJECTS_ENABLED, 'Enable project management module'],
+    ['MODULES_UI_VALIDATION_ENABLED', DEFAULTS.MODULES_UI_VALIDATION_ENABLED, 'Enable data validation helper'],
+    ['MODULES_ROLE_VIEWS_ENABLED', DEFAULTS.MODULES_ROLE_VIEWS_ENABLED, 'Enable role-based views helper']
   ];
   
   // Append after header row
@@ -659,6 +729,41 @@ function seedFinanceExpenses_() {
   ];
 
   sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+/**
+ * Seed chart of accounts and ledger templates.
+ */
+function seedDefaultLedgerAccounts_() {
+  const accountsSheet = sheet_(SHEETS.CHART_OF_ACCOUNTS, false);
+  if (accountsSheet && accountsSheet.getLastRow() <= 1) {
+    const rows = [
+      ['COA-1000', 'Cash', 'Asset', 'Current Assets', true, ''],
+      ['COA-1100', 'Accounts Receivable', 'Asset', 'Current Assets', true, ''],
+      ['COA-2000', 'Accounts Payable', 'Liability', 'Current Liabilities', true, ''],
+      ['COA-4000', 'Commission Income', 'Revenue', 'Sales', true, ''],
+      ['COA-5000', 'Marketing Expenses', 'Expense', 'Operating Expenses', true, ''],
+      ['COA-5100', 'Travel Expenses', 'Expense', 'Operating Expenses', true, ''],
+      ['COA-5200', 'Professional Fees', 'Expense', 'Operating Expenses', true, '']
+    ];
+    accountsSheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
+}
+
+/**
+ * Seed extension modules with starter rows.
+ */
+function seedExtensionsDefaults_() {
+  const roleSheet = sheet_(SHEETS.ROLE_VIEWS, false);
+  if (roleSheet && roleSheet.getLastRow() <= 1) {
+    const now = nowIso_(cfg_('TIMEZONE', DEFAULTS.TIMEZONE));
+    const rows = [
+      ['VIEW-AGENT', 'agent', 'DASHBOARD_SUMMARY', JSON.stringify({}), now, 'Default agent KPI view'],
+      ['VIEW-BROKER', 'broker', 'DASHBOARD_PIPELINE', JSON.stringify({}), now, 'Default broker pipeline view'],
+      ['VIEW-ACCOUNTING', 'accounting', 'FIN_DASH_AGG', JSON.stringify({}), now, 'Default finance summary view']
+    ];
+    roleSheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  }
 }
 
 /**

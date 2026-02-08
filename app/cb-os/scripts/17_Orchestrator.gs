@@ -70,6 +70,16 @@ function ORCH_15MIN(e) {
       max_retry_reached: 0
     });
     results.jobs.push({ name: 'dlq_retry_job', result: dlqResult });
+
+    // Job 6: Extensions Summary (validations + role views)
+    if (typeof extensions_summary_job === 'function') {
+      Logger.log('ORCH | Starting job 6: extensions_summary_job');
+      const extensionsResult = runWithErrorBoundary_('extensions_summary_job', () => extensions_summary_job(ctx), {
+        validations_applied: 0,
+        role_views_refreshed: 0
+      });
+      results.jobs.push({ name: 'extensions_summary_job', result: extensionsResult });
+    }
     
   } catch (e) {
     Logger.log('ORCH | FATAL ERROR: ' + e.message);

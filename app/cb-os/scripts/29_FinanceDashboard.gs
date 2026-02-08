@@ -13,6 +13,9 @@ function refreshFinanceDashboard_() {
   const taxRows = getSheetData_(SHEETS.FIN_TAX);
   const fxRows = getSheetData_(SHEETS.FIN_FX_RATES);
   const expenseRows = getSheetData_(SHEETS.FIN_EXPENSES);
+  const ledgerEnabled = cfg_('MODULES_LEDGER_ENABLED', DEFAULTS.MODULES_LEDGER_ENABLED);
+  const accountRows = ledgerEnabled ? getSheetData_(SHEETS.CHART_OF_ACCOUNTS) : [];
+  const ledgerRows = ledgerEnabled ? getSheetData_(SHEETS.GENERAL_LEDGER) : [];
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -98,6 +101,29 @@ function refreshFinanceDashboard_() {
     ['post_tax_ciro_target', postTaxTarget, runAt],
     ['post_expense_ciro_target', postExpenseTarget, runAt]
   ];
+
+  if (ledgerEnabled && accountRows.length > 0 && ledgerRows.length > 0) {
+    const accountById = {};
+    accountRows.forEach(account => {
+      accountById[account.account_id] = account;
+    });
+    const ledgerSummary = ledgerRows.reduce((acc, row) => {
+      const account = accountById[row.account_id] || {};
+      const category = account.account_category || account.account_type || 'Other';
+      const debit = Number(row.debit || 0);
+      const credit = Number(row.credit || 0);
+      acc.total_debit += isNaN(debit) ? 0 : debit;
+      acc.total_credit += isNaN(credit) ? 0 : credit;
+      acc.by_category[category] = (acc.by_category[category] || 0) + (credit - debit);
+      return acc;
+    }, { total_debit: 0, total_credit: 0, by_category: {} });
+
+    financeRows.push(['ledger_total_debit', ledgerSummary.total_debit, runAt]);
+    financeRows.push(['ledger_total_credit', ledgerSummary.total_credit, runAt]);
+    Object.keys(ledgerSummary.by_category).forEach(category => {
+      financeRows.push(['ledger_net_' + String(category).toLowerCase().replace(/\s+/g, '_'), ledgerSummary.by_category[category], runAt]);
+    });
+  }
 
   writeDashboardTable_(SHEETS.FIN_DASH_AGG, financeRows);
 
