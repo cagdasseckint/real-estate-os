@@ -1,225 +1,2693 @@
 <!doctype html>
 <html>
-  <head>
-    <base target="_top">
-    <meta charset="utf-8">
-    <style>
-      :root {
-        color-scheme: light;
-        font-family: Arial, sans-serif;
-        --bg: #f6f7fb;
-        --card: #ffffff;
-        --text: #1f2a44;
-        --muted: #6b7280;
-        --accent: #2563eb;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
-      }
-      header {
-        padding: 16px;
-        background: var(--card);
-        border-bottom: 1px solid #e5e7eb;
-      }
-      header h1 {
-        font-size: 18px;
-        margin: 0 0 4px;
-      }
-      header p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 12px;
-      }
-      .container {
-        padding: 16px;
-        display: grid;
-        gap: 16px;
-      }
-      .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-      }
-      .card {
-        background: var(--card);
-        border-radius: 10px;
-        padding: 12px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-      }
-      .card h3 {
-        font-size: 12px;
-        color: var(--muted);
-        margin: 0 0 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-      .card .value {
-        font-size: 20px;
-        font-weight: 600;
-      }
-      .chart {
-        height: 260px;
-      }
-      .row {
-        display: grid;
-        gap: 12px;
-      }
-      .ops-list {
-        font-size: 12px;
-        color: var(--muted);
-        line-height: 1.6;
-      }
-      .refresh {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-        color: var(--muted);
-      }
-      button {
-        background: var(--accent);
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-size: 12px;
-        cursor: pointer;
-      }
-    </style>
-    <script src="https://www.gstatic.com/charts/loader.js"></script>
-  </head>
-  <body>
-    <header>
-      <h1>CB-OS Live Dashboard</h1>
-      <p>Gayrimenkul danışmanı operasyonları için canlı KPI + grafik akışı</p>
-    </header>
-    <div class="container">
-      <div class="refresh">
-        <span id="lastUpdated">Veri bekleniyor...</span>
-        <button onclick="refreshAll()">Yenile</button>
+<head>
+  <base target="_top">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CB-OS Dashboard</title>
+
+  <!-- Libraries -->
+  <!-- Google Charts (served from gstatic) is generally accessible inside Apps Script sidebars. -->
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <style>
+    /* ---------- Theme system (CSS vars) ---------- */
+    :root{
+      --bg:#061226;
+      --bg2:#071a30;
+      --surface: rgba(255,255,255,.06);
+      --surface2: rgba(255,255,255,.08);
+      --border: rgba(255,255,255,.10);
+      --border2: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --menuText: rgba(255,255,255,.92);
+      --menuMuted: rgba(255,255,255,.62);
+      --muted: rgba(255,255,255,.62);
+      --accent:#4aa3ff;
+      --glow1: rgba(60,130,255,.22);
+      --glow2: rgba(0,215,170,.12);
+      --glow3: rgba(255,180,70,.08);
+      --danger:#ff4d4d;
+      --ok:#34d399;
+      --shadow: 0 16px 40px rgba(0,0,0,.45);
+      --radius: 16px;
+      --radius2: 20px;
+      --blur: 18px;
+      --topbarH: 62px;
+      --gridGap: 14px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color-scheme: dark;
+    }
+
+    /* Background */
+    body{
+      margin:0;
+      font-family: var(--font);
+      color: var(--menuText);
+      background:
+        radial-gradient(1200px 700px at 15% 15%, var(--glow1), transparent 55%),
+        radial-gradient(1000px 600px at 88% 18%, var(--glow2), transparent 55%),
+        radial-gradient(800px 520px at 60% 92%, var(--glow3), transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    /* ---------- AppShell ---------- */
+    .app{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* ---------- TopBar ---------- */
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      height: var(--topbarH);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding: 10px 14px;
+      backdrop-filter: blur(var(--blur));
+      background: linear-gradient(180deg, rgba(2,10,22,.75), rgba(2,10,22,.40));
+      border-bottom:1px solid var(--border);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 220px;
+    }
+    .logo{
+      width:34px;
+      height:34px;
+      border-radius:12px;
+      background: linear-gradient(135deg, rgba(74,163,255,.95), rgba(74,163,255,.30));
+      box-shadow: 0 12px 30px rgba(74,163,255,.18);
+    }
+    .brand h1{
+      font-size:15px;
+      margin:0;
+      line-height:1.1;
+      letter-spacing:.2px;
+    }
+    .brand .sub{
+      margin-top:2px;
+      font-size:12.5px;
+      color: var(--muted);
+    }
+
+    .actions{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:nowrap;
+      justify-content:flex-end;
+      max-width: calc(100vw - 260px);
+      overflow-x:auto;
+      overflow-y:hidden;
+      scrollbar-width: none; /* Firefox */
+    }
+    .actions::-webkit-scrollbar{ height:0; }
+
+    /* Buttons */
+    .btn{
+      height:34px;
+      padding:0 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      font-size:13px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{ background: rgba(255,255,255,.07); border-color: var(--border2); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(74,163,255,.85), rgba(74,163,255,.45));
+      border-color: rgba(74,163,255,.55);
+      box-shadow: 0 12px 28px rgba(74,163,255,.18);
+    }
+    .btn.primary:hover{ filter:saturate(1.05); }
+    .btn.danger{
+      background: rgba(255,77,77,.14);
+      border-color: rgba(255,77,77,.35);
+    }
+
+    /* Segmented controls (Lang + Edit Mode) */
+    .seg{
+      height:34px;
+      align-items:center;
+      display:inline-flex;
+      padding:3px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      gap:3px;
+    }
+    .seg button{
+      height:26px;
+      padding:0 10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      line-height:26px;
+      border-radius:999px;
+      border:0;
+      background: transparent;
+      color: var(--muted);
+      font-size:12.5px;
+      cursor:pointer;
+      transition: background .15s ease, color .15s ease, transform .15s ease;
+    }
+    .seg button.active{
+      background: rgba(255,255,255,.10);
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+    }
+    .seg button:active{ transform: translateY(1px); }
+
+    /* Custom dropdown (Theme, Date presets) */
+    .dd{
+      position:relative;
+      height:34px;
+      display:inline-flex;
+      align-items:center;
+    }
+    .ddbtn{
+      height:34px;
+      padding:0 12px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:13px;
+    }
+    .ddbtn:hover{ background: rgba(255,255,255,.07); border-color: var(--border2); }
+    .ddmenu{
+      position:absolute;
+      top:40px;
+      right:0;
+      min-width: 220px;
+      border-radius: 14px;
+      border:1px solid var(--border);
+      background: rgba(10,18,33,.92);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      transform-origin: top right;
+      transform: scale(.98);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .16s ease, transform .16s ease;
+      z-index:80;
+    }
+    .dd.open .ddmenu{
+      opacity:1;
+      pointer-events:auto;
+      transform: scale(1);
+    }
+    .dditem{
+      padding:10px 12px;
+      cursor:pointer;
+      font-size:13px;
+      color: var(--menuText);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .dditem:last-child{ border-bottom:0; }
+    .dditem:hover{ background: rgba(255,255,255,.06); }
+    .ddtag{
+      font-size:11px;
+      color: var(--menuMuted);
+    }
+
+    /* ---------- DashboardPage ---------- */
+    .page{
+      padding: 14px;
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+    }
+
+    /* Drawer overlay */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.42);
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .22s ease;
+      z-index:60;
+    }
+    .overlay.open{ opacity:1; pointer-events:auto; }
+
+    /* WidgetLibraryDrawer */
+    .drawer{
+      position:fixed;
+      top: var(--topbarH);
+      right:0;
+      height: calc(100vh - var(--topbarH));
+      width: 360px;
+      max-width: calc(100vw - 20px);
+      background: rgba(10,18,33,.88);
+      backdrop-filter: blur(18px);
+      border-left:1px solid var(--border);
+      box-shadow: var(--shadow);
+      transform: translateX(100%);
+      transition: transform .24s ease;
+      z-index:70;
+      display:flex;
+      flex-direction:column;
+    }
+    .drawer.open{ transform: translateX(0); }
+    .drawerHeader{
+      padding:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .drawerHeader h2{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.2px;
+    }
+    .drawerHeader .hint{
+      font-size:12px;
+      color: var(--muted);
+      margin-top:4px;
+    }
+    .drawerBody{
+      padding: 12px;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .libItem{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 14px;
+      padding: 10px 10px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      cursor: grab;
+      user-select:none;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    }
+    .libItem:hover{ background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.14); }
+    .libItem:active{ cursor: grabbing; transform: scale(.995); }
+    .libMeta{ display:flex; flex-direction:column; gap:2px; min-width: 0; }
+    .libTitle{ font-size:13px; color: var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .libSub{ font-size:11.5px; color: var(--muted); }
+    .status{
+      font-size:11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .status.on{ border-color: rgba(52,211,153,.35); color: rgba(52,211,153,.95); background: rgba(52,211,153,.10); }
+    .status.hidden{ border-color: rgba(250,204,21,.35); color: rgba(250,204,21,.95); background: rgba(250,204,21,.10); }
+    .status.off{ border-color: rgba(255,255,255,.10); color: var(--muted); background: rgba(255,255,255,.03); }
+
+    /* ---------- DashboardGrid ---------- */
+    .gridWrap{
+      flex:1;
+      min-width: 0;
+    }
+    .metaRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size:12px;
+    }
+    .metaRow .left{ display:flex; align-items:center; gap:10px; }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: var(--muted);
+      font-size:12px;
+    }
+    .pill.alert{
+      color: rgba(255,255,255,.92);
+      border-color: rgba(255,77,77,.5);
+      background: rgba(255,77,77,.12);
+    }
+    .pill.warn{
+      color: rgba(255,255,255,.92);
+      border-color: rgba(250,204,21,.5);
+      background: rgba(250,204,21,.12);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: var(--gridGap);
+      align-items: stretch;
+      min-height: 220px;
+    }
+
+    /* ---------- WidgetCard ---------- */
+    .card{
+      position:relative;
+      border-radius: var(--radius2);
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.045);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 14px 36px rgba(0,0,0,.25);
+      overflow:hidden;
+      min-height: 170px;
+      transition: box-shadow .2s ease, transform .18s ease, border-color .2s ease;
+    }
+    .card:hover{ border-color: rgba(255,255,255,.16); }
+
+    /* edit mode glow */
+    .editOn .card{
+      box-shadow: 0 0 0 1px rgba(74,163,255,.25), 0 18px 44px rgba(0,0,0,.32);
+    }
+
+    /* drag animations */
+    .sortable-ghost{
+      opacity:.55;
+      transform: scale(.98);
+    }
+    .sortable-chosen{
+      transform: scale(.99);
+      box-shadow: 0 22px 55px rgba(0,0,0,.42);
+    }
+
+    .cardHeader{
+      padding: 12px 12px 0 12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .cardTitle{
+      min-width:0;
+    }
+    .cardTitle h3{
+      margin:0;
+      font-size:14px;
+      letter-spacing:.2px;
+    }
+    .cardTitle .sub{
+      margin-top:4px;
+      font-size:11.5px;
+      color: var(--muted);
+    }
+    .cardTools{
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .iconBtn{
+      width:30px;
+      height:30px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:14px;
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    .iconBtn:hover{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.14); }
+    .iconBtn:active{ transform: translateY(1px); }
+    .dragHandle{
+      cursor: grab;
+    }
+    .dragHandle:active{ cursor: grabbing; }
+
+    .chipRow{
+      padding: 10px 12px 0 12px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .chip{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size:11.5px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip.active{
+      color: var(--text);
+      background: rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.16);
+    }
+
+    .cardBody{
+      padding: 14px;
+      height: calc(100% - 88px);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .kpi{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      padding-top: 12px;
+    }
+    .kpi .value{
+      font-size:30px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .kpi .unit{
+      color: var(--muted);
+      font-size:12px;
+    }
+
+    .chartWrap{
+      position:relative;
+      flex:1;
+      min-height: 120px;
+    }
+    canvas{ width:100% !important; height:100% !important; }
+
+    .nodata{
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color: var(--muted);
+      font-size:12.5px;
+      border:1px dashed rgba(255,255,255,.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,.02);
+    }
+
+    /* Column spans */
+    .span-3{ grid-column: span 3; }
+    .span-4{ grid-column: span 4; }
+    .span-6{ grid-column: span 6; }
+    .span-12{ grid-column: span 12; }
+
+    /* Responsive */
+    @media (max-width: 1100px){
+      .drawer{ width: 340px; }
+    }
+    @media (max-width: 900px){
+      .grid{ grid-template-columns: repeat(6, minmax(0,1fr)); }
+      .span-12{ grid-column: span 6; }
+      .span-6{ grid-column: span 6; }
+      .span-4{ grid-column: span 6; }
+      .span-3{ grid-column: span 6; }
+    }
+    @media (max-width: 560px){
+      .brand{ min-width: unset; }
+      .grid{ grid-template-columns: repeat(1, minmax(0,1fr)); }
+      .span-12,.span-6,.span-4,.span-3{ grid-column: span 1; }
+    }
+
+    /* ---------- Modal (Custom date + confirm reset) ---------- */
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:90;
+      padding: 18px;
+    }
+    .modalOverlay.open{ display:flex; }
+    .modal{
+      width: 520px;
+      max-width: 100%;
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(10,18,33,.92);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .modalHeader{
+      padding: 14px 14px 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .modalHeader h3{ margin:0; font-size:14px; }
+    .modalBody{ padding: 14px; color: var(--muted); font-size:13px; }
+    .row{
+      display:flex;
+      gap:10px;
+      margin-top: 10px;
+      flex-wrap:wrap;
+    }
+    .field{
+      flex:1;
+      min-width: 200px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .field label{ font-size:12px; color: var(--muted); }
+    .input{
+      height: 36px;
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: var(--text);
+      padding: 0 10px;
+      outline:none;
+    }
+    .modalFooter{
+      padding: 12px 14px;
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      border-top: 1px solid rgba(255,255,255,.08);
+    }
+
+    .modalTabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      padding: 10px 14px 0;
+    }
+    .modalFilters{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      padding: 8px 14px 0;
+    }
+    .filterChip{
+      border:1px dashed rgba(255,255,255,.16);
+      background: rgba(255,255,255,.03);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size:11.5px;
+      color: var(--muted);
+      cursor:pointer;
+      user-select:none;
+    }
+    .filterChip.active{
+      color: var(--text);
+      border-color: rgba(255,255,255,.22);
+      background: rgba(255,255,255,.10);
+    }
+    .miniBars{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 6px;
+    }
+    .miniBar{
+      flex:1;
+      min-width: 120px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      height: 8px;
+      overflow:hidden;
+    }
+    .miniFill{
+      height:100%;
+      background: linear-gradient(90deg, rgba(74,163,255,.9), rgba(74,163,255,.35));
+      width: 0%;
+    }
+    .miniLabel{
+      font-size:11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .modalTab{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size:12px;
+      cursor:pointer;
+      color: var(--muted);
+    }
+    .modalTab.active{
+      color: var(--text);
+      background: rgba(255,255,255,.10);
+      border-color: rgba(255,255,255,.16);
+    }
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top: 10px;
+    }
+    .listItem{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-size:12.5px;
+      color: var(--text);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .listRow{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .listMain{
+      min-width: 0;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .listTitle{
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:.2px;
+    }
+    .listSub{
+      color: var(--muted);
+      font-size:11.5px;
+    }
+    .listMeta{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:6px;
+    }
+    .listActions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .linkBtn{
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size:11px;
+      text-decoration:none;
+      white-space:nowrap;
+    }
+    .linkBtn:hover{
+      border-color: rgba(255,255,255,.2);
+      background: rgba(255,255,255,.12);
+    }
+    .badges{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .badge{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.04);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size:11px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .badge.strong{
+      color: var(--text);
+      border-color: rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+    }
+    .metaLine{
+      color: var(--muted);
+      font-size:11.5px;
+    }
+    .detailsStats{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top: 4px;
+    }
+
+    /* ---------- Toast ---------- */
+    .toasts{
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      z-index: 100;
+    }
+    .toast{
+      min-width: 260px;
+      max-width: 360px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(10,18,33,.92);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 13px;
+      opacity:0;
+      transform: translateY(8px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
+    .toast.show{ opacity:1; transform: translateY(0); }
+    .toast .muted{ color: var(--muted); font-size: 12px; margin-top: 4px; }
+
+  </style>
+</head>
+
+<body>
+  <div class="app" id="appRoot">
+    <!-- TopBar -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1 id="t_title">İzleme Paneli</h1>
+          <div class="sub" id="t_subtitle">CB-OS • Dinamik Dashboard</div>
+        </div>
       </div>
-      <div class="kpi-grid" id="kpiGrid"></div>
-      <div class="row">
-        <div class="card">
-          <h3>Pipeline Stage Dağılımı</h3>
-          <div id="pipelineChart" class="chart"></div>
+
+      <div class="actions">
+        <div class="seg" id="segMode">
+          <button type="button" id="btnMonitor" class="active">İzleme</button>
+          <button type="button" id="btnEdit">Düzenle</button>
         </div>
-        <div class="card">
-          <h3>Lead Source</h3>
-          <div id="leadSourceChart" class="chart"></div>
+
+        <button class="btn" id="btnLibrary">Widget Kütüphanesi</button>
+
+        <div class="dd" id="ddTheme">
+          <button class="ddbtn" type="button"><span id="t_theme">Tema</span> • <span id="themeLabel">Koyu Mavi</span> <span style="opacity:.7">▾</span></button>
+          <div class="ddmenu" id="themeMenu"></div>
         </div>
-        <div class="card">
-          <h3>Günlük Snapshot</h3>
-          <div id="dailyChart" class="chart"></div>
+
+        <div class="dd" id="ddRange">
+          <button class="ddbtn" type="button"><span id="t_time">Zaman</span> • <span id="rangeLabel">Son 1 ay</span> <span style="opacity:.7">▾</span></button>
+          <div class="ddmenu" id="rangeMenu"></div>
         </div>
-        <div class="card">
-          <h3>Ops Sağlığı</h3>
-          <div class="ops-list" id="opsStats"></div>
+
+        <div class="seg" id="segView" aria-label="view switch">
+          <button type="button" data-view="ALL" class="active">All</button>
+          <button type="button" data-view="EXEC">Exec</button>
+          <button type="button" data-view="OPS">Ops</button>
+          <button type="button" data-view="COMPLIANCE">Compliance</button>
+        </div>
+
+        <div class="seg" id="segLang" aria-label="language switch">
+          <button type="button" data-lang="TR" class="active">TR</button>
+          <button type="button" data-lang="EN">EN</button>
+        </div>
+
+        <button class="btn" id="btnRefresh">Yenile</button>
+        <button class="btn" id="btnDetails">Detaylar</button>
+        <button class="btn primary" id="btnSave">Kaydet</button>
+        <button class="btn danger" id="btnReset">Varsayılana Dön</button>
+      </div>
+    </div>
+
+    <!-- Drawer overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Widget library drawer -->
+    <aside class="drawer" id="drawer">
+      <div class="drawerHeader">
+        <div>
+          <h2 id="t_library">Widget Kütüphanesi</h2>
+          <div class="hint" id="t_library_hint">Düzenle açıkken sürükleyip dashboard’a bırak.</div>
+        </div>
+        <button class="iconBtn" id="btnCloseDrawer" title="Kapat">✕</button>
+      </div>
+      <div class="drawerBody" id="libraryList">
+        <!-- populated -->
+      </div>
+    </aside>
+
+    <!-- Dashboard page -->
+    <div class="page">
+      <div class="gridWrap">
+        <div class="metaRow">
+          <div class="left">
+            <span class="pill"><span id="t_last">Son güncelleme</span>: <span id="runAt">—</span></span>
+            <span class="pill" id="dataStatus">—</span>
+          </div>
+          <div class="right" id="metaAlerts"></div>
+        </div>
+
+        <div class="grid" id="grid">
+          <!-- widgets -->
         </div>
       </div>
     </div>
-    <script>
-      google.charts.load('current', { packages: ['corechart', 'bar'] });
-      google.charts.setOnLoadCallback(refreshAll);
+  </div>
 
-      function refreshAll() {
-        google.script.run.withSuccessHandler(renderDashboard).getDashboardPanelData_();
+  <!-- Custom Range Modal -->
+  <div class="modalOverlay" id="rangeModal">
+    <div class="modal">
+      <div class="modalHeader">
+        <h3 id="t_custom_range">Serbest Tarih</h3>
+      </div>
+      <div class="modalBody">
+        <div id="t_custom_range_desc">Başlangıç ve bitiş tarihini seç.</div>
+        <div class="row">
+          <div class="field">
+            <label id="t_start">Başlangıç</label>
+            <input class="input" type="date" id="rangeStart">
+          </div>
+          <div class="field">
+            <label id="t_end">Bitiş</label>
+            <input class="input" type="date" id="rangeEnd">
+          </div>
+        </div>
+      </div>
+      <div class="modalFooter">
+        <button class="btn" id="btnRangeCancel">İptal</button>
+        <button class="btn primary" id="btnRangeApply">Uygula</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Reset Modal -->
+  <div class="modalOverlay" id="resetModal">
+    <div class="modal">
+      <div class="modalHeader">
+        <h3 id="t_reset_title">Varsayılana Dön</h3>
+      </div>
+      <div class="modalBody" id="t_reset_desc">
+        Dashboard varsayılan ayarlara döndürülecek. Devam edilsin mi?
+      </div>
+      <div class="modalFooter">
+        <button class="btn" id="btnResetCancel">İptal</button>
+        <button class="btn danger" id="btnResetConfirm">Devam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drilldown Modal -->
+  <div class="modalOverlay" id="detailsModal">
+    <div class="modal">
+      <div class="modalHeader">
+        <h3 id="t_details_title">Detaylar</h3>
+      </div>
+      <div class="modalTabs" id="detailsTabs"></div>
+      <div class="modalFilters" id="detailsFilters"></div>
+      <div class="modalBody">
+        <div id="detailsContent"></div>
+      </div>
+      <div class="modalFooter">
+        <button class="btn" id="btnDetailsExport">Export CSV</button>
+        <button class="btn" id="btnDetailsClose">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+
+<script>
+/* ===========================
+   StateStore + Persistence
+=========================== */
+(function(){
+
+  // ---------- Compatibility helpers ----------
+  const _clone = (obj) => {
+    try{
+      if (typeof structuredClone === 'function') return structuredClone(obj);
+    } catch(_e){}
+    return JSON.parse(JSON.stringify(obj));
+  };
+  // CSS.escape polyfill (basic)
+  if (typeof CSS === 'undefined') window.CSS = {};
+  if (typeof CSS.escape !== 'function') {
+    CSS.escape = function(v){ return String(v).replace(/[^a-zA-Z0-9_\-]/g, '\\$&'); };
+  }
+  const _hasAppsScript = () => (typeof google !== 'undefined' && google.script && google.script.run);
+
+  const VERSION = 1;
+
+  const THEMES = {
+    darkBlue: { labelTR:'Koyu Mavi', labelEN:'Dark Blue', vars:{'--glow1':'rgba(60,130,255,.22)','--glow2':'rgba(0,215,170,.12)','--glow3':'rgba(255,180,70,.08)','--bg':'#061226','--bg2':'#071a30','--accent':'#4aa3ff'}},
+    black:    { labelTR:'Siyah', labelEN:'Black', vars:{'--glow1':'rgba(125,211,252,.16)','--glow2':'rgba(167,139,250,.10)','--glow3':'rgba(34,211,238,.08)','--bg':'#05060a','--bg2':'#070914','--accent':'#7dd3fc'}},
+    white:    { labelTR:'Beyaz', labelEN:'White', vars:{'--glow1':'rgba(0,0,0,.06)','--glow2':'rgba(0,0,0,.04)','--glow3':'rgba(0,0,0,.03)','--bg':'#f6f7fb','--bg2':'#eef1f7','--surface':'rgba(0,0,0,.04)','--surface2':'rgba(0,0,0,.06)','--border':'rgba(0,0,0,.10)','--border2':'rgba(0,0,0,.16)','--text':'rgba(0,0,0,.88)','--muted':'rgba(0,0,0,.55)','--accent':'#1b5cff', '--shadow':'0 16px 40px rgba(0,0,0,.18)', 'color-scheme':'light'}},
+    green:    { labelTR:'Yeşil', labelEN:'Green', vars:{'--glow1':'rgba(34,197,94,.18)','--glow2':'rgba(16,185,129,.10)','--glow3':'rgba(74,222,128,.08)','--bg':'#051b16','--bg2':'#07261f','--accent':'#34d399'}},
+    purple:   { labelTR:'Mor', labelEN:'Purple', vars:{'--glow1':'rgba(168,85,247,.18)','--glow2':'rgba(236,72,153,.10)','--glow3':'rgba(99,102,241,.08)','--bg':'#0f1026','--bg2':'#17153a','--accent':'#a78bfa'}},
+    red:      { labelTR:'Kırmızı', labelEN:'Red', vars:{'--glow1':'rgba(239,68,68,.18)','--glow2':'rgba(249,115,22,.10)','--glow3':'rgba(244,63,94,.08)','--bg':'#1f0a0c','--bg2':'#2a0e10','--accent':'#fb7185'}},
+    yellow:   { labelTR:'Sarı', labelEN:'Yellow', vars:{'--glow1':'rgba(250,204,21,.14)','--glow2':'rgba(245,158,11,.10)','--glow3':'rgba(255,255,255,.06)','--bg':'#1a1605','--bg2':'#241f08','--accent':'#facc15'}},
+    orange:   { labelTR:'Turuncu', labelEN:'Orange', vars:{'--glow1':'rgba(249,115,22,.16)','--glow2':'rgba(251,191,36,.10)','--glow3':'rgba(255,255,255,.06)','--bg':'#1a0f05','--bg2':'#231406','--accent':'#fb923c'}},
+  };
+
+  const RANGE_PRESETS = [
+    { key:'today',      tr:'Bugün', en:'Today', days:0, mode:'today' },
+    { key:'yesterday',  tr:'Dün', en:'Yesterday', days:1, mode:'yesterday' },
+    { key:'last_7',     tr:'1 hafta', en:'1 week', days:7, mode:'last' },
+    { key:'last_21',    tr:'3 hafta', en:'3 weeks', days:21, mode:'last' },
+    { key:'last_30',    tr:'1 ay', en:'1 month', days:30, mode:'last' },
+    { key:'last_90',    tr:'3 ay', en:'3 months', days:90, mode:'last' },
+    { key:'last_180',   tr:'6 ay', en:'6 months', days:180, mode:'last' },
+    { key:'last_365',   tr:'12 ay', en:'12 months', days:365, mode:'last' },
+    { key:'custom',     tr:'Serbest tarih…', en:'Custom range…', mode:'custom' }
+  ];
+
+  const WIDGET_CATALOG = [
+    { key:'w_pipeline', type:'pipeline', titleTR:'Pipeline Dağılımı', titleEN:'Pipeline Distribution', defaultChart:'doughnut', defaultSpan:6, metric:'pipeline', category:'sales', exec:true },
+    { key:'w_daily', type:'daily_snapshots', titleTR:'Günlük Snapshot', titleEN:'Daily Snapshot', defaultChart:'line', defaultSpan:6, metric:'daily_snapshots', category:'sales', exec:true },
+    { key:'w_lead_sources', type:'lead_sources', titleTR:'Lead Source Dağılımı', titleEN:'Lead Source Distribution', defaultChart:'doughnut', defaultSpan:6, metric:'lead_sources', category:'marketing', exec:true },
+    { key:'w_ops_trend', type:'ops_series', titleTR:'Ops Trend', titleEN:'Ops Trend', defaultChart:'line', defaultSpan:6, metric:'ops_series', category:'ops', exec:true },
+    { key:'w_finance_summary', type:'summary', titleTR:'Finans Özeti', titleEN:'Finance Summary', defaultChart:'bar', defaultSpan:6, metric:'finance_summary', category:'finance', exec:true },
+    { key:'w_marketing_summary', type:'summary', titleTR:'Marketing Özeti', titleEN:'Marketing Summary', defaultChart:'bar', defaultSpan:6, metric:'marketing_summary', category:'marketing', exec:true },
+    { key:'w_governance_summary', type:'summary', titleTR:'Governance Özeti', titleEN:'Governance Summary', defaultChart:'bar', defaultSpan:6, metric:'governance_summary', category:'governance', exec:true },
+    { key:'w_compliance_summary', type:'summary', titleTR:'Compliance Özeti', titleEN:'Compliance Summary', defaultChart:'bar', defaultSpan:6, metric:'compliance_summary', category:'compliance', exec:true },
+    { key:'w_security_summary', type:'summary', titleTR:'Security Özeti', titleEN:'Security Summary', defaultChart:'bar', defaultSpan:6, metric:'security_summary', category:'security', exec:true },
+    { key:'w_booking_summary', type:'summary', titleTR:'Booking Özeti', titleEN:'Booking Summary', defaultChart:'bar', defaultSpan:6, metric:'booking_summary', category:'booking', exec:true },
+    { key:'w_fx_summary', type:'summary', titleTR:'FX Özeti', titleEN:'FX Summary', defaultChart:'bar', defaultSpan:6, metric:'fx_summary', category:'finance', exec:true },
+    { key:'w_deals_total', type:'kpi', titleTR:'Toplam Deal', titleEN:'Total Deals', defaultChart:'kpi', defaultSpan:3, metric:'kpis.deals_total', unitTR:'adet', unitEN:'count', category:'sales', exec:true },
+    { key:'w_contacts_total', type:'kpi', titleTR:'Toplam Contact', titleEN:'Total Contacts', defaultChart:'kpi', defaultSpan:3, metric:'kpis.contacts_total', unitTR:'adet', unitEN:'count', category:'sales', exec:true },
+    { key:'w_tasks_open', type:'kpi', titleTR:'Açık Task', titleEN:'Open Tasks', defaultChart:'kpi', defaultSpan:3, metric:'kpis.tasks_open', unitTR:'adet', unitEN:'count', category:'ops', exec:true },
+    { key:'w_tasks_overdue', type:'kpi', titleTR:'Geciken Task', titleEN:'Overdue Tasks', defaultChart:'kpi', defaultSpan:3, metric:'kpis.tasks_overdue', unitTR:'adet', unitEN:'count', category:'ops', exec:true },
+    { key:'w_sla', type:'kpi', titleTR:'SLA Aşımı', titleEN:'SLA Breaches', defaultChart:'kpi', defaultSpan:3, metric:'kpis.sla_first_touch_breach', unitTR:'adet', unitEN:'count', category:'sales', exec:true },
+    { key:'w_stuck', type:'kpi', titleTR:'Stuck Stage', titleEN:'Stuck Stages', defaultChart:'kpi', defaultSpan:3, metric:'kpis.stuck_stage_over_threshold', unitTR:'adet', unitEN:'count', category:'sales', exec:true },
+    { key:'w_ops_error', type:'kpi', titleTR:'Hata Oranı', titleEN:'Error Rate', defaultChart:'kpi', defaultSpan:3, metric:'ops.error_rate', unitTR:'oran', unitEN:'rate', format:'percent', category:'ops', exec:true },
+    { key:'w_cursor_drift', type:'kpi', titleTR:'Cursor Drift (dk)', titleEN:'Cursor Drift (min)', defaultChart:'kpi', defaultSpan:3, metric:'ops.cursor_drift_minutes', unitTR:'dk', unitEN:'min', category:'ops', exec:true },
+    { key:'w_dlq_count', type:'kpi', titleTR:'DLQ Adedi', titleEN:'DLQ Count', defaultChart:'kpi', defaultSpan:3, metric:'ops.dlq_count', unitTR:'adet', unitEN:'count', category:'ops', exec:true },
+    { key:'w_ingest_pending', type:'kpi', titleTR:'Ingest Bekleyen', titleEN:'Ingest Pending', defaultChart:'kpi', defaultSpan:3, metric:'ops.ingest_pending', unitTR:'adet', unitEN:'count', category:'ops', exec:true },
+    { key:'w_finance_monthly_actual', type:'kpi', titleTR:'Aylık Ciro (Gerçekleşen)', titleEN:'Monthly Ciro (Actual)', defaultChart:'kpi', defaultSpan:3, summary:'finance_summary', metricKey:'monthly_ciro_actual', unitTR:'₺', unitEN:'TRY', category:'finance', exec:true },
+    { key:'w_finance_monthly_target', type:'kpi', titleTR:'Aylık Ciro (Hedef)', titleEN:'Monthly Ciro (Target)', defaultChart:'kpi', defaultSpan:3, summary:'finance_summary', metricKey:'monthly_ciro_target', unitTR:'₺', unitEN:'TRY', category:'finance', exec:true },
+    { key:'w_finance_annual_actual', type:'kpi', titleTR:'Yıllık Ciro (Gerçekleşen)', titleEN:'Annual Ciro (Actual)', defaultChart:'kpi', defaultSpan:3, summary:'finance_summary', metricKey:'annual_ciro_actual', unitTR:'₺', unitEN:'TRY', category:'finance', exec:true },
+    { key:'w_finance_annual_target', type:'kpi', titleTR:'Yıllık Ciro (Hedef)', titleEN:'Annual Ciro (Target)', defaultChart:'kpi', defaultSpan:3, summary:'finance_summary', metricKey:'annual_ciro_target', unitTR:'₺', unitEN:'TRY', category:'finance', exec:true },
+    { key:'w_income_tax', type:'kpi', titleTR:'Yıllık Gelir Vergisi', titleEN:'Annual Income Tax', defaultChart:'kpi', defaultSpan:3, summary:'finance_summary', metricKey:'annual_income_tax', unitTR:'₺', unitEN:'TRY', category:'finance', exec:true },
+    { key:'w_compliance_property', type:'kpi', titleTR:'Eksik Portföy', titleEN:'Missing Property', defaultChart:'kpi', defaultSpan:3, summary:'compliance_summary', metricKey:'property_missing', unitTR:'adet', unitEN:'count', category:'compliance', exec:true },
+    { key:'w_compliance_agreement', type:'kpi', titleTR:'Eksik Sözleşme', titleEN:'Missing Agreement', defaultChart:'kpi', defaultSpan:3, summary:'compliance_summary', metricKey:'agreement_missing', unitTR:'adet', unitEN:'count', category:'compliance', exec:true },
+    { key:'w_security_drive', type:'kpi', titleTR:'Drive Paylaşım Sorunu', titleEN:'Drive Share Issues', defaultChart:'kpi', defaultSpan:3, summary:'security_summary', metricKey:'drive_share_issues', unitTR:'adet', unitEN:'count', category:'security', exec:true },
+    { key:'w_security_sop', type:'kpi', titleTR:'SOP Bekleyen', titleEN:'SOP Pending', defaultChart:'kpi', defaultSpan:3, summary:'security_summary', metricKey:'security_sop_pending', unitTR:'adet', unitEN:'count', category:'security', exec:true },
+    { key:'w_smoke_latest', type:'kpi', titleTR:'Smoke Sonuç', titleEN:'Smoke Latest', defaultChart:'kpi', defaultSpan:3, metric:'governance.smoke_latest', unitTR:'-', unitEN:'-', category:'governance', exec:true }
+  ];
+
+  const DEFAULT_STATE = {
+    version: VERSION,
+    updatedAt: null,
+    theme: { current: 'darkBlue' },
+    ui: { editMode: false, libraryOpen: false, lang:'TR', view:'ALL' },
+    filters: { dateRange: { type:'preset', value:'last_30', start:null, end:null } },
+    widgets: WIDGET_CATALOG.slice(0, 9).map(w => ({
+      id: w.key, key: w.key, type: w.type,
+      titleTR: w.titleTR, titleEN: w.titleEN,
+      chartType: w.defaultChart,
+      span: w.defaultSpan,
+      hidden: false
+    }))
+  };
+
+  const Store = {
+    state: _clone(DEFAULT_STATE),
+    listeners: new Set(),
+    set(patchFn){
+      patchFn(this.state);
+      this.emit();
+    },
+    emit(){ this.listeners.forEach(fn => fn(this.state)); },
+    subscribe(fn){ this.listeners.add(fn); return () => this.listeners.delete(fn); }
+  };
+
+  /* ---------- Toast ---------- */
+  function toast(msg, sub){
+    const host = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = `<div>${escapeHtml(msg)}</div>${sub?`<div class="muted">${escapeHtml(sub)}</div>`:''}`;
+    host.appendChild(el);
+    requestAnimationFrame(()=> el.classList.add('show'));
+    setTimeout(()=>{
+      el.classList.remove('show');
+      setTimeout(()=> el.remove(), 260);
+    }, 2600);
+  }
+
+  // Stable alias for refresh call sites.
+  // Without this, an early init error can prevent the dashboard from rendering.
+  async function refreshData(){
+    try { await reloadData(); } catch (_e) { /* no-op */ }
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  /* ---------- PersistenceService (Apps Script UserProperties) ---------- */
+  function loadPersist(){
+    return new Promise((resolve)=>{
+      try{
+        if (!_hasAppsScript()){
+          const raw = localStorage.getItem('dash:v1:state');
+          resolve(raw ? JSON.parse(raw) : null);
+          return;
+        }
+        google.script.run
+          .withSuccessHandler((prefs)=> resolve(prefs || null))
+          .withFailureHandler(()=> resolve(null))
+          .getDashboardPanelPrefs_();
+      } catch(e){
+        resolve(null);
+      }
+    });
+  }
+  function savePersist(state){
+    return new Promise((resolve,reject)=>{
+      try{
+        if (!_hasAppsScript()){
+          state.updatedAt = new Date().toISOString();
+          localStorage.setItem('dash:v1:state', JSON.stringify(state));
+          resolve({ok:true, updatedAt: state.updatedAt});
+          return;
+        }
+        const payload = JSON.parse(JSON.stringify(state));
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .saveDashboardPanelPrefs_(payload);
+      } catch(e){ reject(e); }
+    });
+  }
+  function resetPersist(){
+    return new Promise((resolve,reject)=>{
+      try{
+        if (!_hasAppsScript()){
+          localStorage.removeItem('dash:v1:state');
+          resolve({ok:true});
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .resetDashboardPanelPrefs_();
+      } catch(e){ reject(e); }
+    });
+  }
+
+  /* ---------- Data loader ---------- */
+  function fetchData(){
+    return new Promise((resolve,reject)=>{
+      try{
+        if (!_hasAppsScript()){
+          // Local preview fallback: return empty payload shape
+          resolve({ run_at: new Date().toISOString(), kpis:{}, pipeline:[], lead_sources:[], ops:{}, daily_snapshots:[] });
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .getDashboardPanelData_();
+      } catch(e){ reject(e); }
+    });
+  }
+
+  /* ---------- i18n (minimal, pro) ---------- */
+  const I18N = {
+    TR: {
+      title:'İzleme Paneli',
+      subtitle:'CB-OS • Dinamik Dashboard',
+      monitor:'İzleme',
+      edit:'Düzenle',
+      library:'Widget Kütüphanesi',
+      libraryHint:'Düzenle açıkken sürükleyip dashboard’a bırak.',
+      theme:'Tema',
+      time:'Zaman',
+      refresh:'Yenile',
+      save:'Kaydet',
+      reset:'Varsayılana Dön',
+      lastUpdate:'Son güncelleme',
+      noData:'Veri alınamadı',
+      saved:'✅ Değişiklikler başarıyla kaydedildi',
+      saveFail:'❌ Kaydedilemedi, tekrar deneyin',
+      resetTitle:'Varsayılana Dön',
+      resetDesc:'Dashboard varsayılan ayarlara döndürülecek. Devam edilsin mi?',
+      resetOk:'✅ Varsayılan ayarlara döndürüldü',
+      detailsTitle:'Detaylar',
+      detailsClose:'Kapat',
+      detailsExport:'CSV Aktar',
+      customRange:'Serbest Tarih',
+      customRangeDesc:'Başlangıç ve bitiş tarihini seç.',
+      start:'Başlangıç',
+      end:'Bitiş',
+      cancel:'İptal',
+      apply:'Uygula',
+      proceed:'Devam',
+      added:'Eklendi',
+      hidden:'Gizli',
+      notAdded:'Ekli değil',
+      remove:'Kaldır',
+      open:'Aç',
+      done:'Tamamlandı',
+      snooze:'Ertele +1g',
+      resolve:'Çözüldü',
+      contact:'İlgili Kişi',
+      docs:'Belgeler',
+      viewAll:'Tümü',
+      viewExec:'Yönetici',
+      viewOps:'Ops',
+      viewCompliance:'Uyum',
+    },
+    EN: {
+      title:'Monitoring Panel',
+      subtitle:'CB-OS • Dynamic Dashboard',
+      monitor:'Monitor',
+      edit:'Edit',
+      library:'Widget Library',
+      libraryHint:'Drag into dashboard when edit mode is on.',
+      theme:'Theme',
+      time:'Time',
+      refresh:'Refresh',
+      save:'Save',
+      reset:'Reset to Default',
+      lastUpdate:'Last update',
+      noData:'No data',
+      saved:'✅ Changes saved successfully',
+      saveFail:'❌ Save failed. Please try again',
+      resetTitle:'Reset to Default',
+      resetDesc:'Dashboard will be reset to default settings. Continue?',
+      resetOk:'✅ Reset to default completed',
+      detailsTitle:'Details',
+      detailsClose:'Close',
+      detailsExport:'Export CSV',
+      customRange:'Custom Range',
+      customRangeDesc:'Pick start and end dates.',
+      start:'Start',
+      end:'End',
+      cancel:'Cancel',
+      apply:'Apply',
+      proceed:'Proceed',
+      added:'Added',
+      hidden:'Hidden',
+      notAdded:'Not added',
+      remove:'Remove',
+      open:'Open',
+      done:'Done',
+      snooze:'Snooze +1d',
+      resolve:'Resolved',
+      contact:'Contact',
+      docs:'Docs',
+      viewAll:'All',
+      viewExec:'Executive',
+      viewOps:'Ops',
+      viewCompliance:'Compliance',
+    }
+  };
+
+  /* ===========================
+     UI Components
+  =========================== */
+
+  // TopBar binds
+  const el = {
+    appRoot: document.getElementById('appRoot'),
+    overlay: document.getElementById('overlay'),
+    drawer: document.getElementById('drawer'),
+    libraryList: document.getElementById('libraryList'),
+    grid: document.getElementById('grid'),
+    runAt: document.getElementById('runAt'),
+    dataStatus: document.getElementById('dataStatus'),
+    metaAlerts: document.getElementById('metaAlerts'),
+
+    btnLibrary: document.getElementById('btnLibrary'),
+    btnCloseDrawer: document.getElementById('btnCloseDrawer'),
+    btnRefresh: document.getElementById('btnRefresh'),
+    btnSave: document.getElementById('btnSave'),
+    btnReset: document.getElementById('btnReset'),
+    btnDetails: document.getElementById('btnDetails'),
+    btnMonitor: document.getElementById('btnMonitor'),
+    btnEdit: document.getElementById('btnEdit'),
+
+    segLang: document.getElementById('segLang'),
+    segView: document.getElementById('segView'),
+    ddTheme: document.getElementById('ddTheme'),
+    themeLabel: document.getElementById('themeLabel'),
+    themeMenu: document.getElementById('themeMenu'),
+    ddRange: document.getElementById('ddRange'),
+    rangeLabel: document.getElementById('rangeLabel'),
+    rangeMenu: document.getElementById('rangeMenu'),
+
+    rangeModal: document.getElementById('rangeModal'),
+    rangeStart: document.getElementById('rangeStart'),
+    rangeEnd: document.getElementById('rangeEnd'),
+    btnRangeCancel: document.getElementById('btnRangeCancel'),
+    btnRangeApply: document.getElementById('btnRangeApply'),
+
+    resetModal: document.getElementById('resetModal'),
+    btnResetCancel: document.getElementById('btnResetCancel'),
+    btnResetConfirm: document.getElementById('btnResetConfirm'),
+    detailsModal: document.getElementById('detailsModal'),
+    detailsTabs: document.getElementById('detailsTabs'),
+    detailsFilters: document.getElementById('detailsFilters'),
+    detailsContent: document.getElementById('detailsContent'),
+    btnDetailsExport: document.getElementById('btnDetailsExport'),
+    btnDetailsClose: document.getElementById('btnDetailsClose'),
+
+    t_title: document.getElementById('t_title'),
+    t_subtitle: document.getElementById('t_subtitle'),
+    t_theme: document.getElementById('t_theme'),
+    t_time: document.getElementById('t_time'),
+    t_last: document.getElementById('t_last'),
+    t_library: document.getElementById('t_library'),
+    t_library_hint: document.getElementById('t_library_hint'),
+    t_custom_range: document.getElementById('t_custom_range'),
+    t_custom_range_desc: document.getElementById('t_custom_range_desc'),
+    t_start: document.getElementById('t_start'),
+    t_end: document.getElementById('t_end'),
+    t_reset_title: document.getElementById('t_reset_title'),
+    t_reset_desc: document.getElementById('t_reset_desc'),
+    t_details_title: document.getElementById('t_details_title')
+  };
+
+  // Google Charts instances (best-effort). We keep the dashboard usable even if charts fail to load.
+  let charts = new Map(); // widgetId -> chart wrapper
+  let chartsReady = false;
+
+  function ensureGoogleCharts(){
+    return new Promise((resolve)=>{
+      try{
+        if (chartsReady) return resolve(true);
+        if (!window.google || !google.charts){
+          return resolve(false);
+        }
+        google.charts.load('current', { packages: ['corechart'] });
+        google.charts.setOnLoadCallback(()=>{
+          chartsReady = true;
+          resolve(true);
+        });
+      } catch(e){
+        resolve(false);
+      }
+    });
+  }
+  let lastData = null;
+
+  function applyTheme(themeKey){
+    const theme = THEMES[themeKey] || THEMES.darkBlue;
+
+    // Apply declared vars
+    Object.entries(theme.vars).forEach(([k,v])=>{
+      if (k === 'color-scheme') return;
+      document.documentElement.style.setProperty(k, v);
+    });
+
+    // Text color rule (per your requirement):
+    // - White theme: black text
+    // - All other themes: white text
+    if (themeKey === 'white'){
+      document.documentElement.style.setProperty('--text', 'rgba(0,0,0,.90)');
+      document.documentElement.style.setProperty('--muted', 'rgba(0,0,0,.62)');
+      // Menus/popovers remain dark, so menu text should stay light for readability.
+      document.documentElement.style.setProperty('--menuText', 'rgba(255,255,255,.92)');
+      document.documentElement.style.setProperty('--menuMuted', 'rgba(255,255,255,.62)');
+      document.documentElement.style.colorScheme = 'light';
+    } else {
+      document.documentElement.style.setProperty('--text', 'rgba(255,255,255,.92)');
+      document.documentElement.style.setProperty('--muted', 'rgba(255,255,255,.62)');
+      document.documentElement.style.setProperty('--menuText', 'rgba(255,255,255,.92)');
+      document.documentElement.style.setProperty('--menuMuted', 'rgba(255,255,255,.62)');
+      document.documentElement.style.colorScheme = 'dark';
+    }
+
+    // Ensure glow vars exist (prevents muddy cross-theme mixing)
+    const g1 = theme.vars['--glow1'] || (themeKey==='white' ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.08)');
+    const g2 = theme.vars['--glow2'] || (themeKey==='white' ? 'rgba(0,0,0,.04)' : 'rgba(255,255,255,.06)');
+    const g3 = theme.vars['--glow3'] || (themeKey==='white' ? 'rgba(0,0,0,.03)' : 'rgba(255,255,255,.05)');
+    document.documentElement.style.setProperty('--glow1', g1);
+    document.documentElement.style.setProperty('--glow2', g2);
+    document.documentElement.style.setProperty('--glow3', g3);
+
+    el.themeLabel.textContent = (Store.state.ui.lang === 'TR' ? theme.labelTR : theme.labelEN);
+  }
+
+  function applyLang(lang){
+    const t = I18N[lang] || I18N.TR;
+    el.t_title.textContent = t.title;
+    el.t_subtitle.textContent = t.subtitle;
+    el.btnMonitor.textContent = t.monitor;
+    el.btnEdit.textContent = t.edit;
+    el.btnLibrary.textContent = t.library;
+    el.btnRefresh.textContent = t.refresh;
+    el.btnSave.textContent = t.save;
+    el.btnReset.textContent = t.reset;
+    el.t_last.textContent = t.lastUpdate;
+    el.t_theme.textContent = t.theme;
+    el.t_time.textContent = t.time;
+    el.t_library.textContent = t.library;
+    el.t_library_hint.textContent = t.libraryHint;
+    el.t_custom_range.textContent = t.customRange;
+    el.t_custom_range_desc.textContent = t.customRangeDesc;
+    el.t_start.textContent = t.start;
+    el.t_end.textContent = t.end;
+    el.btnRangeCancel.textContent = t.cancel;
+    el.btnRangeApply.textContent = t.apply;
+    el.t_reset_title.textContent = t.resetTitle;
+    el.t_reset_desc.textContent = t.resetDesc;
+    el.btnResetCancel.textContent = t.cancel;
+    el.btnResetConfirm.textContent = t.proceed;
+    if (el.btnDetailsExport) el.btnDetailsExport.textContent = t.detailsExport;
+
+    if (el.segView){
+      const btnAll = el.segView.querySelector('[data-view="ALL"]');
+      const btnExec = el.segView.querySelector('[data-view="EXEC"]');
+      const btnOps = el.segView.querySelector('[data-view="OPS"]');
+      const btnCompliance = el.segView.querySelector('[data-view="COMPLIANCE"]');
+      if (btnAll) btnAll.textContent = t.viewAll;
+      if (btnExec) btnExec.textContent = t.viewExec;
+      if (btnOps) btnOps.textContent = t.viewOps;
+      if (btnCompliance) btnCompliance.textContent = t.viewCompliance;
+    }
+    el.t_details_title.textContent = t.detailsTitle;
+    el.btnDetailsClose.textContent = t.detailsClose;
+
+    // segmented active
+    Array.from(el.segLang.querySelectorAll('button')).forEach(b=>{
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+
+    // update theme + range labels
+    applyTheme(Store.state.theme.current);
+    el.rangeLabel.textContent = rangeLabelText(Store.state.filters.dateRange);
+  }
+
+  function openDrawer(open){
+    Store.set(s => { s.ui.libraryOpen = open; });
+  }
+
+  function closeDropdowns(){
+    el.ddTheme.classList.remove('open');
+    el.ddRange.classList.remove('open');
+    // reset fixed positioning styles (Apps Script sidebars can clip absolute menus)
+    [el.themeMenu, el.rangeMenu].forEach(menu=>{
+      if(!menu) return;
+      menu.style.position = '';
+      menu.style.top = '';
+      menu.style.left = '';
+      menu.style.right = '';
+      menu.style.minWidth = '';
+    });
+  }
+
+  function openPopover(ddEl, btnEl, menuEl){
+    if(!ddEl || !btnEl || !menuEl) return;
+    // close the other one first
+    if(ddEl === el.ddTheme) el.ddRange.classList.remove('open');
+    if(ddEl === el.ddRange) el.ddTheme.classList.remove('open');
+
+    const willOpen = !ddEl.classList.contains('open');
+    closeDropdowns();
+    if(!willOpen) return;
+
+    ddEl.classList.add('open');
+
+    // Position as fixed to avoid any ancestor clipping / stacking issues
+    const r = btnEl.getBoundingClientRect();
+    menuEl.style.position = 'fixed';
+    menuEl.style.minWidth = '220px';
+    // Align right edge with button right edge
+    const desiredLeft = Math.max(10, r.right - 220);
+    menuEl.style.left = desiredLeft + 'px';
+    menuEl.style.top = (r.bottom + 8) + 'px';
+    menuEl.style.right = 'auto';
+  }
+
+  function rangeLabelText(range){
+    const lang = Store.state.ui.lang;
+    if (range.type === 'custom'){
+      const s = range.start || '—';
+      const e = range.end || '—';
+      return lang==='TR' ? `${s} → ${e}` : `${s} → ${e}`;
+    }
+    const p = RANGE_PRESETS.find(x=> x.key===range.value) || RANGE_PRESETS.find(x=> x.key==='last_30');
+    return lang==='TR' ? p.tr : p.en;
+  }
+
+  function hydratePersist(prefs){
+    if (!prefs || typeof prefs !== 'object'){
+      Store.state = _clone(DEFAULT_STATE);
+      return;
+    }
+    // migration hook
+    const v = prefs.version || 1;
+    const st = _clone(DEFAULT_STATE);
+    // shallow merge with guards
+    st.version = v;
+    st.updatedAt = prefs.updatedAt || null;
+    if (prefs.theme && prefs.theme.current && THEMES[prefs.theme.current]) st.theme.current = prefs.theme.current;
+    if (prefs.ui){
+      st.ui.editMode = !!prefs.ui.editMode;
+      st.ui.libraryOpen = !!prefs.ui.libraryOpen;
+      st.ui.lang = (prefs.ui.lang === 'EN') ? 'EN' : 'TR';
+      const view = prefs.ui.view || 'ALL';
+      st.ui.view = ['ALL','EXEC','OPS','COMPLIANCE'].includes(view) ? view : 'ALL';
+    }
+    if (prefs.filters && prefs.filters.dateRange){
+      const dr = prefs.filters.dateRange;
+      if (dr.type === 'custom'){
+        st.filters.dateRange = { type:'custom', value:'custom', start: dr.start || null, end: dr.end || null };
+      } else if (dr.type === 'preset'){
+        const key = RANGE_PRESETS.some(p=>p.key===dr.value) ? dr.value : 'last_30';
+        st.filters.dateRange = { type:'preset', value:key, start:null, end:null };
+      }
+    }
+    // widgets (preserve catalog metadata)
+    const byKey = new Map(WIDGET_CATALOG.map(w=>[w.key, w]));
+    const inWidgets = Array.isArray(prefs.widgets) ? prefs.widgets : [];
+    const merged = [];
+    inWidgets.forEach(w=>{
+      const cat = byKey.get(w.key || w.id);
+      if (!cat) return;
+      merged.push({
+        id: cat.key,
+        key: cat.key,
+        type: cat.type,
+        titleTR: cat.titleTR,
+        titleEN: cat.titleEN,
+        chartType: (w.chartType || cat.defaultChart),
+        span: [3,4,6,12].includes(w.span) ? w.span : cat.defaultSpan,
+        hidden: !!w.hidden
+      });
+    });
+    // Ensure at least defaults (no empty dashboard)
+    if (merged.length === 0){
+      st.widgets = _clone(DEFAULT_STATE.widgets);
+    } else {
+      st.widgets = merged;
+      // Also add any missing defaults (so library status works well)
+      DEFAULT_STATE.widgets.forEach(dw=>{
+        if (!st.widgets.some(x=>x.key===dw.key)) st.widgets.push(_clone(dw));
+      });
+    }
+    Store.state = st;
+    // If user previously hid everything, don't start with an empty screen
+    if (Array.isArray(Store.state.widgets) && Store.state.widgets.length && Store.state.widgets.every(w=>w.hidden)){
+      const keep = new Set(Store.state.widgets.slice(0, 6).map(w=>w.key));
+      Store.state.widgets.forEach(w=>{ if (keep.has(w.key)) w.hidden = false; });
+    }
+  }
+
+  /* ===========================
+     Widget system
+  =========================== */
+
+  function getWidgetStatus(widgetKey){
+    const w = Store.state.widgets.find(x=>x.key===widgetKey);
+    if (!w) return 'off';
+    if (w.hidden) return 'hidden';
+    return 'on';
+  }
+
+  function ensureWidget(widgetKey){
+    const cat = WIDGET_CATALOG.find(w=>w.key===widgetKey);
+    if (!cat) return;
+    const existing = Store.state.widgets.find(w=>w.key===widgetKey);
+    if (existing){
+      Store.set(s=>{
+        const w = s.widgets.find(x=>x.key===widgetKey);
+        if (w) w.hidden = false;
+      });
+      return;
+    }
+    Store.set(s=>{
+      s.widgets.push({
+        id: cat.key, key: cat.key, type: cat.type,
+        titleTR: cat.titleTR, titleEN: cat.titleEN,
+        chartType: cat.defaultChart,
+        span: cat.defaultSpan,
+        hidden:false
+      });
+    });
+  }
+
+  function hideWidget(widgetKey){
+    Store.set(s=>{
+      const w = s.widgets.find(x=>x.key===widgetKey);
+      if (w) w.hidden = true;
+    });
+  }
+
+  function removeWidget(widgetKey){
+    // remove from dashboard list (but keep default rule: don't allow blank)
+    Store.set(s=>{
+      s.widgets = s.widgets.filter(w=>w.key!==widgetKey);
+      if (s.widgets.filter(w=>!w.hidden).length === 0){
+        // fallback to defaults
+        s.widgets = _clone(DEFAULT_STATE.widgets);
+      }
+    });
+  }
+
+  function setWidgetSpan(widgetKey, span){
+    Store.set(s=>{
+      const w = s.widgets.find(x=>x.key===widgetKey);
+      if (w) w.span = span;
+    });
+  }
+
+  function setWidgetChart(widgetKey, chartType){
+    Store.set(s=>{
+      const w = s.widgets.find(x=>x.key===widgetKey);
+      if (w) w.chartType = chartType;
+    });
+  }
+
+  function setWidgetOrder(orderKeys){
+    Store.set(s=>{
+      const map = new Map(s.widgets.map(w=>[w.key,w]));
+      const ordered = [];
+      orderKeys.forEach(k => { if (map.has(k)) ordered.push(map.get(k)); });
+      // append remaining (hidden or not in dom)
+      s.widgets.forEach(w=>{
+        if (!ordered.includes(w)) ordered.push(w);
+      });
+      s.widgets = ordered;
+    });
+  }
+
+  /* ===========================
+     ChartRenderer
+  =========================== */
+  function destroyChart(widgetKey){
+    const c = charts.get(widgetKey);
+    if (c && c.el) {
+      try{ c.el.innerHTML = ''; }catch(_e){}
+    }
+    charts.delete(widgetKey);
+  }
+
+  function destroyAllCharts(){
+    charts.forEach(c=>{ try{ if (c && c.el) c.el.innerHTML=''; }catch(_e){} });
+    charts.clear();
+  }
+
+  function getByPath(obj, path){
+    if (!path) return undefined;
+    return path.split('.').reduce((acc,k)=> acc && acc[k], obj);
+  }
+
+  function applyDateFilter(data){
+    if (!data) return data;
+    const dr = Store.state.filters.dateRange;
+    const getDateStr = (row)=>{
+      return row.date || row.day || row.snapshot_date || row.run_at || row.timestamp || row.created_at
+        || row.snapshotDate || row.snapshot_day || row.snapshotDay || null;
+    };
+    const parse = (s)=>{
+      if (!s) return null;
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d;
+      // try yyyy-mm-dd
+      const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
+      return null;
+    };
+
+    let start=null, end=null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    if (dr.type === 'custom' && dr.start && dr.end){
+      start = new Date(dr.start+'T00:00:00');
+      end = new Date(dr.end+'T23:59:59');
+    } else {
+      const p = RANGE_PRESETS.find(x=>x.key===dr.value) || RANGE_PRESETS.find(x=>x.key==='last_30');
+      if (p.mode === 'today'){
+        start = new Date(today);
+        end = new Date(today); end.setHours(23,59,59,999);
+      } else if (p.mode === 'yesterday'){
+        start = new Date(today); start.setDate(start.getDate()-1);
+        end = new Date(start); end.setHours(23,59,59,999);
+      } else if (p.mode === 'last'){
+        end = new Date(today); end.setHours(23,59,59,999);
+        start = new Date(today); start.setDate(start.getDate() - (p.days-1));
+      }
+    }
+    if (!start || !end) return data;
+    const filterArray = (rows)=> (rows || []).filter(r=>{
+      const d = parse(getDateStr(r));
+      if (!d) return true;
+      return d >= start && d <= end;
+    });
+    return {
+      ...data,
+      daily_snapshots: filterArray(data.daily_snapshots),
+      ops_series: filterArray(data.ops_series),
+      finance_summary: filterArray(data.finance_summary),
+      fx_summary: filterArray(data.fx_summary),
+      booking_summary: filterArray(data.booking_summary),
+      marketing_summary: filterArray(data.marketing_summary),
+      governance_summary: filterArray(data.governance_summary),
+      compliance_summary: filterArray(data.compliance_summary),
+      security_summary: filterArray(data.security_summary)
+    };
+  }
+
+  function renderChart(widget, data, hostEl){
+    const cat = WIDGET_CATALOG.find(w=>w.key===widget.key);
+    if (!cat || !hostEl) return;
+
+    // If Google Charts isn't ready, show a graceful placeholder (buttons still work).
+    if (!chartsReady){
+      hostEl.innerHTML = `<div class="nodata">${escapeHtml(I18N[Store.state.ui.lang].noData)}</div>`;
+      return;
+    }
+
+    const metric = cat.metric;
+    const payload = getByPath(data, metric);
+    hostEl.innerHTML = '';
+
+    // Build a DataTable
+    const dt = new google.visualization.DataTable();
+    let chart = null;
+
+    const commonOptions = {
+      backgroundColor: 'transparent',
+      legend: { textStyle: { color: getCss('--muted', '#cbd5e1') } },
+      chartArea: { left: 16, top: 12, right: 16, bottom: 28, width: '100%', height: '80%' },
+      hAxis: { textStyle: { color: getCss('--muted', '#cbd5e1') }, gridlines: { color: 'rgba(255,255,255,.06)' } },
+      vAxis: { textStyle: { color: getCss('--muted', '#cbd5e1') }, gridlines: { color: 'rgba(255,255,255,.06)' } }
+    };
+
+    if (metric === 'pipeline'){
+      const rows = Array.isArray(payload) ? payload : [];
+      dt.addColumn('string', 'Stage');
+      dt.addColumn('number', 'Count');
+      dt.addRows(rows.map(r=>[`${r.deal_type||'-'} • ${r.stage||'-'}`, Number(r.count||0)]));
+      chart = buildChartByType(widget.chartType, hostEl, dt, commonOptions);
+    } else if (metric === 'lead_sources'){
+      const rows = Array.isArray(payload) ? payload : [];
+      dt.addColumn('string', 'Source');
+      dt.addColumn('number', 'Count');
+      dt.addRows(rows.map(r=>[String(r.lead_source||'-'), Number(r.count||0)]));
+      chart = buildChartByType(widget.chartType, hostEl, dt, commonOptions);
+    } else if (metric === 'ops_series') {
+      const rows = Array.isArray(payload) ? payload : [];
+      dt.addColumn('string', 'Run');
+      dt.addColumn('number', 'Ingest');
+      dt.addColumn('number', 'DLQ');
+      dt.addRows(rows.map(r=>[
+        String(r.run_at || r.timestamp || ''),
+        Number(r.ingest_pending || 0),
+        Number(r.dlq_count || 0)
+      ]));
+      chart = buildChartByType('line', hostEl, dt, commonOptions);
+    } else if (metric === 'daily_snapshots'){
+      const rows = Array.isArray(payload) ? payload : [];
+      const getDate = (r)=> r.date || r.day || r.snapshot_date || r.run_at || '';
+      const keys = Object.keys(rows[0]||{}).filter(k=> !['date','day','snapshot_date','run_at'].includes(k));
+      const aKey = keys.find(k=>/lead/i.test(k)) || keys[0] || 'value';
+      const bKey = keys.find(k=>/deal/i.test(k)) || keys[1];
+
+      dt.addColumn('string', 'Date');
+      dt.addColumn('number', aKey);
+      if (bKey) dt.addColumn('number', bKey);
+      dt.addRows(rows.map(r=>{
+        const row = [String(getDate(r) || '') , Number(r[aKey]||0)];
+        if (bKey) row.push(Number(r[bKey]||0));
+        return row;
+      }));
+
+      // For time-series, prefer line/area/bar.
+      const ct = ['line','area','bar'].includes(widget.chartType) ? widget.chartType : 'line';
+      chart = buildChartByType(ct, hostEl, dt, commonOptions);
+    } else if (Array.isArray(payload)) {
+      const rows = payload;
+      dt.addColumn('string', 'Metric');
+      dt.addColumn('number', 'Value');
+      dt.addRows(rows.map(r=>[
+        String(r.metric || r.label || '-'),
+        Number(r.value || r.close_rate || r.open_rate || 0)
+      ]));
+      const ct = ['bar','pie','doughnut'].includes(widget.chartType) ? widget.chartType : 'bar';
+      chart = buildChartByType(ct, hostEl, dt, commonOptions);
+    } else {
+      hostEl.innerHTML = `<div class="nodata">${escapeHtml(I18N[Store.state.ui.lang].noData)}</div>`;
+      return;
+    }
+
+    charts.set(widget.key, { chart, el: hostEl });
+  }
+
+  function getCss(varName, fallback){
+    const v = getComputedStyle(document.documentElement).getPropertyValue(varName);
+    return (v && String(v).trim()) ? String(v).trim() : fallback;
+  }
+
+  function buildChartByType(type, hostEl, dt, commonOptions){
+    const t = (type==='donut') ? 'doughnut' : type;
+    const options = { ...commonOptions };
+    let chart;
+
+    if (t==='pie' || t==='doughnut'){
+      if (t==='doughnut') options.pieHole = 0.62;
+      options.chartArea = { left: 10, top: 10, right: 10, bottom: 10, width: '100%', height: '90%' };
+      chart = new google.visualization.PieChart(hostEl);
+    } else if (t==='bar'){
+      chart = new google.visualization.ColumnChart(hostEl);
+    } else if (t==='area'){
+      chart = new google.visualization.AreaChart(hostEl);
+    } else {
+      chart = new google.visualization.LineChart(hostEl);
+    }
+
+    try{ chart.draw(dt, options); }catch(_e){
+      hostEl.innerHTML = `<div class="nodata">${escapeHtml(I18N[Store.state.ui.lang].noData)}</div>`;
+    }
+    return chart;
+  }
+
+  /* ===========================
+     Rendering
+  =========================== */
+  function render(){
+    const s = Store.state;
+    // edit class
+    el.appRoot.classList.toggle('editOn', s.ui.editMode);
+
+    // drawer + overlay
+    el.drawer.classList.toggle('open', s.ui.libraryOpen);
+    el.overlay.classList.toggle('open', s.ui.libraryOpen);
+
+    // topbar mode buttons
+    el.btnMonitor.classList.toggle('active', !s.ui.editMode);
+    el.btnEdit.classList.toggle('active', s.ui.editMode);
+    if (el.segView){
+      Array.from(el.segView.querySelectorAll('button')).forEach(b=>{
+        b.classList.toggle('active', b.dataset.view === (s.ui.view || 'ALL'));
+      });
+    }
+
+    // theme menu population (rebuild to reflect language)
+    el.themeMenu.innerHTML='';
+    Object.entries(THEMES).forEach(([k,v])=>{
+        const item = document.createElement('div');
+        item.className = 'dditem';
+        item.dataset.theme = k;
+        item.innerHTML = `<div>${escapeHtml(s.ui.lang==='TR'?v.labelTR:v.labelEN)}</div><div class="ddtag">${k}</div>`;
+        item.addEventListener('click', ()=>{
+          Store.set(st=> { st.theme.current = k; });
+          closeDropdowns();
+        });
+        el.themeMenu.appendChild(item);
+      });
+
+    // range menu
+    el.rangeMenu.innerHTML = '';
+    RANGE_PRESETS.forEach(p=>{
+      const item = document.createElement('div');
+      item.className = 'dditem';
+      item.dataset.range = p.key;
+      item.innerHTML = `<div>${escapeHtml(s.ui.lang==='TR'?p.tr:p.en)}</div><div class="ddtag">${p.key}</div>`;
+      item.addEventListener('click', ()=>{
+        closeDropdowns();
+        if (p.key === 'custom'){
+          openRangeModal();
+          return;
+        }
+        Store.set(st=>{
+          st.filters.dateRange = { type:'preset', value:p.key, start:null, end:null };
+        });
+        el.rangeLabel.textContent = rangeLabelText(Store.state.filters.dateRange);
+        // re-render charts using filtered snapshots
+        if (lastData) { renderGrid(lastData); } else { refreshData(); }
+      });
+      el.rangeMenu.appendChild(item);
+    });
+
+    // labels
+    el.rangeLabel.textContent = rangeLabelText(s.filters.dateRange);
+
+    // apply lang (also updates theme label)
+    applyLang(s.ui.lang);
+    applyTheme(s.theme.current);
+
+    // render library
+    renderLibrary();
+
+    // render grid
+    if (lastData) { renderGrid(lastData); renderMetaAlerts(lastData); } else { refreshData(); }
+  }
+
+  function renderLibrary(){
+    const s = Store.state;
+    const t = I18N[s.ui.lang];
+    el.libraryList.innerHTML = '';
+    WIDGET_CATALOG.forEach(w=>{
+      const status = getWidgetStatus(w.key);
+      const item = document.createElement('div');
+      item.className = 'libItem';
+      item.dataset.widgetKey = w.key;
+      item.innerHTML = `
+        <div class="libMeta">
+          <div class="libTitle">${escapeHtml(s.ui.lang==='TR'?w.titleTR:w.titleEN)}</div>
+          <div class="libSub">${escapeHtml(w.key)} • ${escapeHtml(w.type)}</div>
+        </div>
+        <div class="status ${status}">
+          ${status==='on'?t.added:status==='hidden'?t.hidden:t.notAdded}
+        </div>
+      `;
+      // click to toggle
+      item.addEventListener('click', ()=>{
+        if (!s.ui.editMode){
+          toast('ℹ️', s.ui.lang==='TR' ? 'Widget eklemek için Düzenle modunu aç.' : 'Turn on Edit mode to add widgets.');
+          return;
+        }
+        if (status==='on'){
+          // hide
+          hideWidget(w.key);
+        } else {
+          ensureWidget(w.key);
+        }
+      });
+      el.libraryList.appendChild(item);
+    });
+
+    // Native drag source
+    el.libraryList.querySelectorAll('.libItem').forEach(it=>{
+      it.setAttribute('draggable', 'true');
+      it.addEventListener('dragstart', (ev)=>{
+        if (!Store.state.ui.editMode){
+          ev.preventDefault();
+          toast('ℹ️', Store.state.ui.lang==='TR' ? 'Widget eklemek için Düzenle modunu aç.' : 'Turn on Edit mode to add widgets.');
+          return;
+        }
+        const key = it.dataset.widgetKey;
+        ev.dataTransfer.setData('text/widgetKey', key);
+        ev.dataTransfer.setData('text/source', 'library');
+        ev.dataTransfer.effectAllowed = 'copy';
+      });
+    });
+  }
+
+  function renderMetaAlerts(data){
+    if (!el.metaAlerts) return;
+    el.metaAlerts.innerHTML = '';
+    if (!data) return;
+    const alerts = [];
+    const ops = data.ops || {};
+    const kpis = data.kpis || {};
+    if (Number(ops.error_rate || 0) >= 0.05){
+      alerts.push({ level:'alert', text: `${(ops.error_rate * 100).toFixed(1)}% Error` });
+    }
+    if (Number(ops.cursor_drift_minutes || 0) >= 60){
+      alerts.push({ level:'warn', text: `Cursor ${ops.cursor_drift_minutes}m` });
+    }
+    if (Number(ops.dlq_count || 0) > 0){
+      alerts.push({ level:'warn', text: `DLQ ${ops.dlq_count}` });
+    }
+    if (Number(kpis.tasks_overdue || 0) > 0){
+      alerts.push({ level:'warn', text: `Overdue ${kpis.tasks_overdue}` });
+    }
+    alerts.forEach(a=>{
+      const span = document.createElement('span');
+      span.className = `pill ${a.level}`;
+      span.textContent = a.text;
+      el.metaAlerts.appendChild(span);
+    });
+  }
+
+  function renderGrid(rawData){
+    const data = applyDateFilter(rawData);
+    // clear existing DOM + destroy charts for removed widgets
+    destroyAllCharts();
+    el.grid.innerHTML = '';
+
+    const s = Store.state;
+    const view = s.ui.view || 'ALL';
+    const visible = s.widgets.filter(w=>{
+      if (w.hidden) return false;
+      if (view === 'ALL') return true;
+      const cat = WIDGET_CATALOG.find(x=>x.key===w.key) || {};
+      if (view === 'EXEC') return !!cat.exec;
+      if (view === 'OPS') return ['ops','governance'].includes(cat.category);
+      if (view === 'COMPLIANCE') return ['compliance','security'].includes(cat.category);
+      return true;
+    });
+
+    if (visible.length === 0){
+      // never empty
+      Store.set(st => { st.widgets = _clone(DEFAULT_STATE.widgets); });
+      return;
+    }
+
+    visible.forEach(w=>{
+      const cat = WIDGET_CATALOG.find(x=>x.key===w.key);
+      const title = (s.ui.lang==='TR'? w.titleTR : w.titleEN);
+      const sub = cat ? cat.metric : '';
+      const card = document.createElement('div');
+      card.className = `card span-${w.span}`;
+      card.dataset.widgetKey = w.key;
+
+      const tools = `
+        <button class="iconBtn dragHandle" title="Drag">⠿</button>
+        <button class="iconBtn" data-act="hide" title="${I18N[s.ui.lang].remove}">👁</button>
+      `;
+
+      card.innerHTML = `
+        <div class="cardHeader">
+          <div class="cardTitle">
+            <h3>${escapeHtml(title)}</h3>
+            <div class="sub">${escapeHtml(sub)}</div>
+          </div>
+          <div class="cardTools">${tools}</div>
+        </div>
+
+        <div class="chipRow">
+          ${['kpi','pie','doughnut','bar','line','area'].map(ct=>{
+            if (ct==='kpi' && w.chartType!=='kpi') return '';
+            if (ct!=='kpi' && w.chartType==='kpi') return '';
+            // allow switchers depending on widget type
+            // KPI widgets only show kpi chip
+            const isKpi = (w.chartType==='kpi');
+            if (isKpi && ct!=='kpi') return '';
+            if (!isKpi && ct==='kpi') return '';
+            const label = ct;
+            return `<span class="chip ${ct===w.chartType?'active':''}" data-ct="${ct}">${label}</span>`;
+          }).join('')}
+          ${[3,4,6,12].map(sp=> `<span class="chip ${sp===w.span?'active':''}" data-span="${sp}">${sp} Kolon</span>`).join('')}
+        </div>
+
+        <div class="cardBody">
+          ${w.chartType==='kpi'
+            ? `<div class="kpi">
+                <div class="value" id="kpi_${w.key}">—</div>
+                <div class="unit" id="unit_${w.key}">—</div>
+               </div>`
+            : `<div class="chartWrap" id="ch_${w.key}"></div>`
+          }
+        </div>
+      `;
+
+      // Tools actions
+      card.querySelectorAll('[data-act="hide"]').forEach(b=>{
+        b.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          if (!s.ui.editMode){
+            toast('ℹ️', s.ui.lang==='TR' ? 'Gizlemek için Düzenle modunu aç.' : 'Turn on Edit mode to hide widgets.');
+            return;
+          }
+          hideWidget(w.key);
+        });
+      });
+
+      // chip events
+      card.querySelectorAll('.chip[data-ct]').forEach(ch=>{
+        ch.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          // Chart type switching is allowed in Monitor mode too
+          setWidgetChart(w.key, ch.dataset.ct);
+        });
+      });
+      card.querySelectorAll('.chip[data-span]').forEach(ch=>{
+        ch.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          if (!s.ui.editMode){
+            toast('ℹ️', s.ui.lang==='TR' ? 'Boyut değiştirmek için Düzenle modunu aç.' : 'Turn on Edit mode to resize.');
+            return;
+          }
+          setWidgetSpan(w.key, Number(ch.dataset.span));
+        });
+      });
+
+      el.grid.appendChild(card);
+      bindCardDnD(card);
+
+      // render content
+      if (w.chartType==='kpi'){
+        const cat = WIDGET_CATALOG.find(x=>x.key===w.key);
+        let val = getByPath(data, cat.metric);
+        if (cat.summary && cat.metricKey) {
+          const rows = getByPath(data, cat.summary) || [];
+          const match = rows.find(row => String(row.metric || '') === cat.metricKey);
+          val = match ? match.value : 0;
+        }
+        const unit = (s.ui.lang==='TR'? (cat.unitTR||'') : (cat.unitEN||''));
+        const elv = card.querySelector(`#kpi_${CSS.escape(w.key)}`);
+        const elu = card.querySelector(`#unit_${CSS.escape(w.key)}`);
+        if (cat.format==='percent'){
+          const pct = (typeof val==='number') ? (val*100) : 0;
+          elv.textContent = `${pct.toFixed(2)}%`;
+          elu.textContent = unit || (s.ui.lang==='TR'?'oran':'rate');
+        } else {
+          elv.textContent = (val===undefined || val===null) ? '0' : String(val);
+          elu.textContent = unit || '';
+        }
+      } else {
+        const host = card.querySelector(`#ch_${CSS.escape(w.key)}`);
+        renderChart(w, data, host);
+      }
+    });
+
+    // Native drag & drop (no external libs) for grid reorder + library add
+    enableNativeDnD();
+  }
+
+  // -------- Native Drag & Drop --------
+  let dndBound = false;
+  let draggingKey = null;
+
+  function enableNativeDnD(){
+    if (dndBound) return;
+    dndBound = true;
+
+    // Grid as drop target
+    el.grid.addEventListener('dragover', (ev)=>{
+      if (!Store.state.ui.editMode) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = (ev.dataTransfer.getData('text/source') === 'library') ? 'copy' : 'move';
+    });
+
+    el.grid.addEventListener('drop', (ev)=>{
+      if (!Store.state.ui.editMode) return;
+      ev.preventDefault();
+      const source = ev.dataTransfer.getData('text/source');
+      const key = ev.dataTransfer.getData('text/widgetKey');
+      if (!key) return;
+
+      const targetCard = ev.target.closest('.card');
+      const targetKey = targetCard ? targetCard.dataset.widgetKey : null;
+
+      if (source === 'library'){
+        ensureWidget(key);
+        return;
       }
 
-      function renderDashboard(data) {
-        document.getElementById('lastUpdated').textContent =
-          'Güncellendi: ' + (data.run_at || '-');
-        renderKpis(data.kpis || {});
-        renderPipelineChart(data.pipeline || []);
-        renderLeadSourceChart(data.lead_sources || []);
-        renderDailyChart(data.daily_snapshots || []);
-        renderOpsStats(data.ops || {});
+      if (source === 'grid'){
+        if (!targetKey || targetKey === key) return;
+        moveWidgetBefore(key, targetKey);
       }
+    });
+  }
 
-      function renderKpis(kpis) {
-        const entries = [
-          ['Toplam Contact', kpis.contacts_total],
-          ['Toplam Deal', kpis.deals_total],
-          ['Açık Task', kpis.tasks_open],
-          ['Geciken Task', kpis.tasks_overdue],
-          ['SLA Aşımı', kpis.sla_first_touch_breach],
-          ['Stuck Stage', kpis.stuck_stage_over_threshold]
-        ];
-        const grid = document.getElementById('kpiGrid');
-        grid.innerHTML = '';
-        entries.forEach(([label, value]) => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.innerHTML = `<h3>${label}</h3><div class="value">${value ?? 0}</div>`;
-          grid.appendChild(card);
-        });
-      }
+  function bindCardDnD(cardEl){
+    // Only allow dragging by handle
+    const handle = cardEl.querySelector('.dragHandle');
+    if (!handle) return;
 
-      function renderPipelineChart(rows) {
-        const data = new google.visualization.DataTable();
-        data.addColumn('string', 'Stage');
-        data.addColumn('number', 'Count');
-        rows.forEach(row => {
-          data.addRow([`${row.deal_type} | ${row.stage}`, Number(row.count || 0)]);
-        });
-        const chart = new google.visualization.BarChart(document.getElementById('pipelineChart'));
-        chart.draw(data, {
-          legend: { position: 'none' },
-          height: 240,
-          colors: ['#2563eb'],
-          chartArea: { width: '70%', height: '70%' }
-        });
-      }
+    handle.addEventListener('mousedown', ()=>{
+      if (!Store.state.ui.editMode) return;
+      cardEl.setAttribute('draggable','true');
+    });
+    handle.addEventListener('mouseup', ()=> cardEl.removeAttribute('draggable'));
+    handle.addEventListener('mouseleave', ()=> cardEl.removeAttribute('draggable'));
 
-      function renderLeadSourceChart(rows) {
-        const data = new google.visualization.DataTable();
-        data.addColumn('string', 'Source');
-        data.addColumn('number', 'Count');
-        rows.forEach(row => {
-          data.addRow([row.lead_source || '-', Number(row.count || 0)]);
-        });
-        const chart = new google.visualization.PieChart(document.getElementById('leadSourceChart'));
-        chart.draw(data, {
-          pieHole: 0.45,
-          height: 240,
-          chartArea: { width: '90%', height: '80%' },
-          legend: { position: 'right' }
-        });
-      }
+    cardEl.addEventListener('dragstart', (ev)=>{
+      if (!Store.state.ui.editMode){ ev.preventDefault(); return; }
+      const key = cardEl.dataset.widgetKey;
+      draggingKey = key;
+      ev.dataTransfer.setData('text/widgetKey', key);
+      ev.dataTransfer.setData('text/source', 'grid');
+      ev.dataTransfer.effectAllowed = 'move';
+      cardEl.classList.add('dragging');
+    });
+    cardEl.addEventListener('dragend', ()=>{
+      draggingKey = null;
+      cardEl.classList.remove('dragging');
+      cardEl.removeAttribute('draggable');
+    });
+  }
 
-      function renderDailyChart(rows) {
-        const data = new google.visualization.DataTable();
-        data.addColumn('string', 'Date');
-        data.addColumn('number', 'Leads');
-        data.addColumn('number', 'Deals');
-        rows.forEach(row => {
-          data.addRow([
-            row.snapshot_date || '',
-            Number(row.leads_created || 0),
-            Number(row.deals_created || 0)
-          ]);
-        });
-        const chart = new google.visualization.LineChart(document.getElementById('dailyChart'));
-        chart.draw(data, {
-          height: 240,
-          colors: ['#22c55e', '#2563eb'],
-          chartArea: { width: '80%', height: '70%' },
-          legend: { position: 'bottom' }
-        });
-      }
+  function moveWidgetBefore(fromKey, toKey){
+    Store.set(s=>{
+      const list = s.widgets.slice();
+      const fromIdx = list.findIndex(w=>w.key===fromKey);
+      const toIdx = list.findIndex(w=>w.key===toKey);
+      if (fromIdx<0 || toIdx<0) return;
+      const [moved] = list.splice(fromIdx,1);
+      const insertAt = (fromIdx < toIdx) ? (toIdx-1) : toIdx;
+      list.splice(insertAt,0,moved);
+      s.widgets = list;
+    });
+  }
 
-      function renderOpsStats(ops) {
-        const el = document.getElementById('opsStats');
-        const html = [
-          `Ingest pending: ${ops.ingest_pending ?? 0}`,
-          `DLQ count: ${ops.dlq_count ?? 0}`,
-          `Error rate: ${(ops.error_rate ?? 0).toFixed(2)}`,
-          `Cursor drift (min): ${ops.cursor_drift_minutes ?? 0}`
-        ];
-        el.innerHTML = html.map(line => `<div>${line}</div>`).join('');
+  /* ===========================
+     Modals
+  =========================== */
+  function openRangeModal(){
+    el.rangeModal.classList.add('open');
+    // prefill
+    const dr = Store.state.filters.dateRange;
+    el.rangeStart.value = dr.start || '';
+    el.rangeEnd.value = dr.end || '';
+  }
+  function closeRangeModal(){
+    el.rangeModal.classList.remove('open');
+  }
+
+  function openResetModal(){ el.resetModal.classList.add('open'); }
+  function closeResetModal(){ el.resetModal.classList.remove('open'); }
+
+  function openDetailsModal(){
+    renderDetailsTabs();
+    el.detailsModal.classList.add('open');
+  }
+  function closeDetailsModal(){ el.detailsModal.classList.remove('open'); }
+
+  let currentDetailsKey = null;
+  let currentDetailsRows = [];
+  const detailsFilterState = {};
+
+  function renderDetailsTabs(){
+    const tabs = [
+      { key:'overdue_tasks', tr:'Geciken Task', en:'Overdue Tasks' },
+      { key:'stuck_deals', tr:'Stuck Deal', en:'Stuck Deals' },
+      { key:'dlq_items', tr:'DLQ', en:'DLQ' },
+      { key:'job_runs', tr:'Job Run', en:'Job Runs' },
+      { key:'finance_summary', tr:'Finans', en:'Finance' },
+      { key:'compliance_summary', tr:'Compliance', en:'Compliance' },
+      { key:'compliance_issues', tr:'Compliance Detay', en:'Compliance Issues' },
+      { key:'security_summary', tr:'Security', en:'Security' },
+      { key:'marketing_summary', tr:'Marketing', en:'Marketing' }
+    ];
+    el.detailsTabs.innerHTML = '';
+    tabs.forEach((tab, idx) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'modalTab' + (idx === 0 ? ' active' : '');
+      btn.textContent = Store.state.ui.lang === 'TR' ? tab.tr : tab.en;
+      btn.dataset.key = tab.key;
+      btn.addEventListener('click', () => {
+        Array.from(el.detailsTabs.children).forEach(child => child.classList.remove('active'));
+        btn.classList.add('active');
+        currentDetailsKey = tab.key;
+        renderDetailsFilters(tab.key);
+        renderDetailsContent(tab.key);
+      });
+      el.detailsTabs.appendChild(btn);
+    });
+    currentDetailsKey = tabs[0].key;
+    renderDetailsFilters(tabs[0].key);
+    renderDetailsContent(tabs[0].key);
+  }
+
+  function renderDetailsContent(key){
+    const data = (lastData && lastData.drilldown) ? lastData.drilldown : {};
+    const payload = data[key] || {};
+    const rows = Array.isArray(payload) ? payload : (payload.items || []);
+    const stats = Array.isArray(payload) ? {} : (payload.stats || {});
+    const filteredRows = applyDetailsFilter(key, rows, stats);
+    currentDetailsRows = filteredRows;
+    if (!filteredRows || filteredRows.length === 0){
+      el.detailsContent.innerHTML = `<div class="nodata">${escapeHtml(I18N[Store.state.ui.lang].noData)}</div>`;
+      return;
+    }
+    const list = document.createElement('div');
+    list.className = 'list';
+    const statsEl = renderDetailsStats_(key, stats);
+    if (statsEl) list.appendChild(statsEl);
+    filteredRows.forEach(row => {
+      list.appendChild(renderDetailsItem_(key, row));
+    });
+    el.detailsContent.innerHTML = '';
+    el.detailsContent.appendChild(list);
+  }
+
+  function handleDetailsAction(e){
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    if (!_hasAppsScript()){
+      toast('ℹ️', Store.state.ui.lang==='TR' ? 'Apps Script ortamı yok' : 'Apps Script not available');
+      return;
+    }
+    const act = btn.dataset.act;
+    if (act === 'task-done'){
+      const row = btn.dataset.row;
+      google.script.run
+        .withSuccessHandler(()=>{ toast('✅', Store.state.ui.lang==='TR' ? 'Task tamamlandı' : 'Task completed'); refreshData(); })
+        .withFailureHandler((err)=>{ toast('❌', String(err && err.message ? err.message : err)); })
+        .updateTaskStatusFromPanel_(row, 'done');
+    }
+    if (act === 'task-snooze'){
+      const row = btn.dataset.row;
+      google.script.run
+        .withSuccessHandler(()=>{ toast('✅', Store.state.ui.lang==='TR' ? 'Task ertelendi' : 'Task snoozed'); refreshData(); })
+        .withFailureHandler((err)=>{ toast('❌', String(err && err.message ? err.message : err)); })
+        .snoozeTaskFromPanel_(row, 1);
+    }
+    if (act === 'dlq-resolve'){
+      const ingestId = btn.dataset.id;
+      google.script.run
+        .withSuccessHandler(()=>{ toast('✅', Store.state.ui.lang==='TR' ? 'DLQ çözüldü' : 'DLQ resolved'); refreshData(); })
+        .withFailureHandler((err)=>{ toast('❌', String(err && err.message ? err.message : err)); })
+        .resolveDlqItemFromPanel_(ingestId, 'fixed');
+    }
+  }
+
+  function exportDetailsCsv(){
+    if (!currentDetailsRows || currentDetailsRows.length === 0) return;
+    const headers = Object.keys(currentDetailsRows[0] || {});
+    const lines = [headers.join(',')];
+    currentDetailsRows.forEach(row => {
+      const vals = headers.map(h => {
+        const v = row[h] === undefined || row[h] === null ? '' : String(row[h]);
+        return `"${v.replace(/"/g, '""')}"`;
+      });
+      lines.push(vals.join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentDetailsKey || 'details'}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function renderDetailsFilters(key){
+    if (!el.detailsFilters) return;
+    const filters = getDetailsFilters_(key);
+    el.detailsFilters.innerHTML = '';
+    if (!filters.length) return;
+    filters.forEach(filter => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'filterChip' + ((detailsFilterState[key] === filter.key) ? ' active' : '');
+      chip.textContent = filter.label;
+      chip.addEventListener('click', () => {
+        detailsFilterState[key] = (detailsFilterState[key] === filter.key) ? null : filter.key;
+        renderDetailsFilters(key);
+        renderDetailsContent(key);
+      });
+      el.detailsFilters.appendChild(chip);
+    });
+  }
+
+  function getDetailsFilters_(key){
+    const t = Store.state.ui.lang === 'TR';
+    if (key === 'overdue_tasks') {
+      return [
+        { key:'7d', label: t ? '7+ Gün' : '7+ Days' },
+        { key:'high', label: t ? 'Öncelik: High' : 'Priority: High' }
+      ];
+    }
+    if (key === 'stuck_deals') {
+      return [
+        { key:'threshold', label: t ? 'Eşik Üstü' : 'Over Threshold' },
+        { key:'value', label: t ? 'Değerli' : 'High Value' }
+      ];
+    }
+    if (key === 'dlq_items') {
+      return [
+        { key:'max', label: t ? 'Max Retry' : 'Max Retry' }
+      ];
+    }
+    if (key === 'job_runs') {
+      return [
+        { key:'failed', label: t ? 'Hata' : 'Failed' }
+      ];
+    }
+    if (key === 'compliance_issues') {
+      return [
+        { key:'missing', label: t ? '3+ Eksik' : '3+ Missing' }
+      ];
+    }
+    return [];
+  }
+
+  function applyDetailsFilter(key, rows, stats){
+    const filter = detailsFilterState[key];
+    if (!filter) return rows;
+    if (key === 'overdue_tasks') {
+      if (filter === '7d') return rows.filter(r => Number(r.days_overdue || 0) >= 7);
+      if (filter === 'high') return rows.filter(r => String(r.priority || '').toLowerCase().includes('high'));
+    }
+    if (key === 'stuck_deals') {
+      if (filter === 'threshold') {
+        const threshold = Number(stats.threshold_days || 0);
+        return rows.filter(r => Number(r.days_in_stage || 0) >= threshold);
       }
-    </script>
-  </body>
+      if (filter === 'value') return rows.filter(r => Number(r.value || 0) >= 100000);
+    }
+    if (key === 'dlq_items') {
+      if (filter === 'max') {
+        const maxRetry = Number(stats.dlq_max_retry || 0);
+        return rows.filter(r => Number(r.retry_count || 0) >= maxRetry);
+      }
+    }
+    if (key === 'job_runs') {
+      if (filter === 'failed') return rows.filter(r => String(r.status || '').toLowerCase() !== 'success');
+    }
+    if (key === 'compliance_issues') {
+      if (filter === 'missing') return rows.filter(r => Number(r.missing_count || 0) >= 3);
+    }
+    return rows;
+  }
+
+  function renderDetailsStats_(key, stats){
+    if (!stats || Object.keys(stats).length === 0) return null;
+    const labels = {
+      total: { tr:'Toplam', en:'Total' },
+      avg_days_overdue: { tr:'Ort. gecikme (gün)', en:'Avg overdue (days)' },
+      avg_days_in_stage: { tr:'Ort. sahne (gün)', en:'Avg stage (days)' },
+      threshold_days: { tr:'Eşik (gün)', en:'Threshold (days)' },
+      max_retry: { tr:'Maks. retry', en:'Max retry' },
+      failed: { tr:'Hata', en:'Failed' },
+      property: { tr:'Portföy', en:'Property' },
+      agreement: { tr:'Sözleşme', en:'Agreement' }
+    };
+    const wrap = document.createElement('div');
+    wrap.className = 'detailsStats';
+    Object.entries(stats).forEach(([k, v]) => {
+      const label = labels[k] ? (Store.state.ui.lang === 'TR' ? labels[k].tr : labels[k].en) : k;
+      const badge = document.createElement('div');
+      badge.className = 'badge strong';
+      badge.textContent = `${label}: ${v}`;
+      wrap.appendChild(badge);
+    });
+    const mini = renderDetailsMiniBars_(key, stats);
+    if (mini) wrap.appendChild(mini);
+    return wrap;
+  }
+
+  function renderDetailsMiniBars_(key, stats){
+    let ratio = null;
+    let label = '';
+    if (key === 'stuck_deals' && stats.threshold_days){
+      ratio = Math.min(1, Number(stats.avg_days_in_stage || 0) / Number(stats.threshold_days || 1));
+      label = Store.state.ui.lang === 'TR' ? 'Ort. / Eşik' : 'Avg / Threshold';
+    }
+    if (key === 'overdue_tasks'){
+      ratio = Math.min(1, Number(stats.avg_days_overdue || 0) / 14);
+      label = Store.state.ui.lang === 'TR' ? 'Ort. gecikme' : 'Avg overdue';
+    }
+    if (key === 'dlq_items' && stats.dlq_max_retry){
+      ratio = Math.min(1, Number(stats.max_retry || 0) / Number(stats.dlq_max_retry || 1));
+      label = Store.state.ui.lang === 'TR' ? 'Max retry' : 'Max retry';
+    }
+    if (ratio === null) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'miniBars';
+    const bar = document.createElement('div');
+    bar.className = 'miniBar';
+    const fill = document.createElement('div');
+    fill.className = 'miniFill';
+    fill.style.width = `${Math.round(ratio * 100)}%`;
+    bar.appendChild(fill);
+    const text = document.createElement('div');
+    text.className = 'miniLabel';
+    text.textContent = `${label}: ${Math.round(ratio * 100)}%`;
+    wrap.appendChild(bar);
+    wrap.appendChild(text);
+    return wrap;
+  }
+
+  function renderDetailsItem_(key, row){
+    const item = document.createElement('div');
+    item.className = 'listItem';
+    const title = renderRowTitle_(key, row);
+    const subtitle = renderRowSubtitle_(key, row);
+    const meta = renderRowMeta_(key, row);
+    const badges = renderRowBadges_(key, row);
+    const actions = renderRowActions_(key, row);
+    item.innerHTML = `
+      <div class="listRow">
+        <div class="listMain">
+          <div class="listTitle">${escapeHtml(title)}</div>
+          ${subtitle ? `<div class="listSub">${escapeHtml(subtitle)}</div>` : ''}
+        </div>
+        <div class="listMeta">
+          ${badges}
+          ${actions}
+          ${meta ? `<div class="metaLine">${escapeHtml(meta)}</div>` : ''}
+        </div>
+      </div>
+    `;
+    return item;
+  }
+
+  function renderRowTitle_(key, row){
+    if (key === 'overdue_tasks') return row.title || row.task_id || '-';
+    if (key === 'stuck_deals') return row.title || row.deal_id || '-';
+    if (key === 'dlq_items') return row.ingest_id || '-';
+    if (key === 'job_runs') return row.job_name || '-';
+    if (key === 'drive_share_issues') return row.file_name || row.issue || '-';
+    if (key === 'compliance_issues') return row.title || row.record_id || '-';
+    return row.metric || row.currency_pair || row.status || '-';
+  }
+
+  function renderRowSubtitle_(key, row){
+    if (key === 'overdue_tasks') return [row.assignee, row.priority].filter(Boolean).join(' • ');
+    if (key === 'stuck_deals') return [row.deal_type, row.stage].filter(Boolean).join(' • ');
+    if (key === 'dlq_items') return [row.source, row.payload_hint].filter(Boolean).join(' • ');
+    if (key === 'job_runs') return [row.status, row.notes].filter(Boolean).join(' • ');
+    if (key === 'drive_share_issues') return [row.issue, row.permission].filter(Boolean).join(' • ');
+    if (key === 'compliance_issues') return row.type || '';
+    return '';
+  }
+
+  function renderRowMeta_(key, row){
+    if (key === 'overdue_tasks') return row.due_date || row.created_at || '';
+    if (key === 'stuck_deals') return row.last_stage_change_at || '';
+    if (key === 'dlq_items') return row.created_at || '';
+    if (key === 'job_runs') return row.created_at || '';
+    if (key === 'drive_share_issues') return row.updated_at || '';
+    if (key === 'compliance_issues') return row.missing_fields || '';
+    return row.run_at || row.value || '';
+  }
+
+  function renderRowBadges_(key, row){
+    const badges = [];
+    const add = (val, strong) => {
+      if (val === undefined || val === null || val === '') return;
+      badges.push(`<span class="badge ${strong ? 'strong' : ''}">${escapeHtml(String(val))}</span>`);
+    };
+    if (key === 'overdue_tasks'){
+      add(formatDays_(row.days_overdue));
+      add(row.status);
+      if (Number(row.days_overdue || 0) >= 7) add('SLA', true);
+    } else if (key === 'stuck_deals'){
+      add(formatDays_(row.days_in_stage), true);
+      add(row.owner);
+      add(row.value);
+      if (Number(row.threshold_days || 0) && Number(row.days_in_stage || 0) >= Number(row.threshold_days || 0)) add('stuck', true);
+    } else if (key === 'dlq_items'){
+      add(`retry: ${row.retry_count}`);
+      add(row.last_error);
+    } else if (key === 'job_runs'){
+      add(row.status);
+      add(row.duration_ms ? `${row.duration_ms}ms` : '');
+    } else if (key === 'drive_share_issues'){
+      add(row.shared_with);
+      add(row.owner);
+    } else if (key === 'compliance_issues'){
+      add(`${row.type || 'record'}`);
+      add(`missing: ${row.missing_count}`);
+    } else {
+      add(row.value, true);
+    }
+    return `<div class="badges">${badges.join('')}</div>`;
+  }
+
+  function renderRowActions_(key, row){
+    const actions = [];
+    if (row && row.link){
+      actions.push(`<a class="linkBtn" href="${escapeHtml(row.link)}" target="_blank" rel="noopener">${escapeHtml(I18N[Store.state.ui.lang].open)}</a>`);
+    }
+    if (key === 'stuck_deals' && row){
+      if (row.contact_link){
+        actions.push(`<a class="linkBtn" href="${escapeHtml(row.contact_link)}" target="_blank" rel="noopener">${escapeHtml(I18N[Store.state.ui.lang].contact)}</a>`);
+      }
+      if (row.doc_link){
+        actions.push(`<a class="linkBtn" href="${escapeHtml(row.doc_link)}" target="_blank" rel="noopener">${escapeHtml(I18N[Store.state.ui.lang].docs)}</a>`);
+      }
+    }
+    if (key === 'overdue_tasks' && row && row.row_index){
+      actions.push(`<button class="linkBtn" data-act="task-done" data-row="${row.row_index}">${escapeHtml(I18N[Store.state.ui.lang].done)}</button>`);
+      actions.push(`<button class="linkBtn" data-act="task-snooze" data-row="${row.row_index}">${escapeHtml(I18N[Store.state.ui.lang].snooze)}</button>`);
+    }
+    if (key === 'dlq_items' && row && row.ingest_id){
+      actions.push(`<button class="linkBtn" data-act="dlq-resolve" data-id="${escapeHtml(row.ingest_id)}">${escapeHtml(I18N[Store.state.ui.lang].resolve)}</button>`);
+    }
+    if (!actions.length) return '';
+    return `<div class="listActions">${actions.join('')}</div>`;
+  }
+
+  function formatDays_(days){
+    if (days === null || days === undefined || Number.isNaN(Number(days))) return '';
+    const label = Store.state.ui.lang === 'TR' ? 'gün' : 'days';
+    return `${days} ${label}`;
+  }
+
+  /* ===========================
+     Events
+  =========================== */
+  el.btnLibrary.addEventListener('click', ()=> openDrawer(true));
+  el.btnCloseDrawer.addEventListener('click', ()=> openDrawer(false));
+  el.overlay.addEventListener('click', ()=> openDrawer(false));
+
+  el.btnMonitor.addEventListener('click', ()=> Store.set(s=>{ s.ui.editMode=false; }));
+  el.btnEdit.addEventListener('click', ()=> Store.set(s=>{ s.ui.editMode=true; }));
+
+  el.btnRefresh.addEventListener('click', async ()=>{
+    await reloadData();
+  });
+
+  el.btnSave.addEventListener('click', async ()=>{
+    try{
+      await savePersist(Store.state);
+      toast(I18N[Store.state.ui.lang].saved);
+    } catch (e){
+      toast(I18N[Store.state.ui.lang].saveFail, String(e && e.message ? e.message : e));
+    }
+  });
+
+  el.btnReset.addEventListener('click', ()=> openResetModal());
+  el.btnResetCancel.addEventListener('click', ()=> closeResetModal());
+  el.btnResetConfirm.addEventListener('click', async ()=>{
+    closeResetModal();
+    // reset state + persist
+    Store.state = _clone(DEFAULT_STATE);
+    Store.emit();
+    try{
+      await resetPersist();
+      // write default to persist (overwrite strategy)
+      await savePersist(Store.state);
+      toast(I18N[Store.state.ui.lang].resetOk);
+    } catch(e){
+      toast(I18N[Store.state.ui.lang].saveFail, String(e && e.message ? e.message : e));
+    }
+  });
+
+  el.btnDetails.addEventListener('click', ()=> openDetailsModal());
+  el.btnDetailsClose.addEventListener('click', ()=> closeDetailsModal());
+  el.detailsContent.addEventListener('click', handleDetailsAction);
+  if (el.btnDetailsExport){
+    el.btnDetailsExport.addEventListener('click', ()=> exportDetailsCsv());
+  }
+
+  // Language segmented
+  el.segLang.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-lang]');
+    if (!btn) return;
+    const lang = btn.dataset.lang;
+    Store.set(s=>{ s.ui.lang = (lang==='EN')?'EN':'TR'; });
+  });
+
+  if (el.segView){
+    el.segView.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button[data-view]');
+      if (!btn) return;
+      const view = btn.dataset.view || 'ALL';
+      Store.set(s=>{ s.ui.view = view; });
+    });
+  }
+
+  // Theme/Range dropdown open/close (fixed-position popover for Apps Script sidebar stability)
+  const btnTheme = el.ddTheme.querySelector('.ddbtn');
+  const btnRange = el.ddRange.querySelector('.ddbtn');
+
+  btnTheme.addEventListener('click', (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    openPopover(el.ddTheme, btnTheme, el.themeMenu);
+  });
+
+  btnRange.addEventListener('click', (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    openPopover(el.ddRange, btnRange, el.rangeMenu);
+  });
+
+  window.addEventListener('resize', ()=> closeDropdowns());
+  window.addEventListener('scroll', ()=> closeDropdowns(), true);
+  document.addEventListener('click', ()=> closeDropdowns());
+
+  // Range modal buttons
+  el.btnRangeCancel.addEventListener('click', ()=> closeRangeModal());
+  el.btnRangeApply.addEventListener('click', ()=>{
+    const sVal = el.rangeStart.value;
+    const eVal = el.rangeEnd.value;
+    if (!sVal || !eVal){
+      toast('ℹ️', Store.state.ui.lang==='TR' ? 'Lütfen başlangıç ve bitiş tarihi seç.' : 'Please select start and end dates.');
+      return;
+    }
+    Store.set(st=>{
+      st.filters.dateRange = { type:'custom', value:'custom', start:sVal, end:eVal };
+    });
+    el.rangeLabel.textContent = rangeLabelText(Store.state.filters.dateRange);
+    closeRangeModal();
+    if (lastData) { renderGrid(lastData); } else { refreshData(); }
+  });
+
+  // Close modals on background click
+  el.rangeModal.addEventListener('click', (e)=>{ if (e.target === el.rangeModal) closeRangeModal(); });
+  el.resetModal.addEventListener('click', (e)=>{ if (e.target === el.resetModal) closeResetModal(); });
+  el.detailsModal.addEventListener('click', (e)=>{ if (e.target === el.detailsModal) closeDetailsModal(); });
+
+  /* ===========================
+     Boot
+  =========================== */
+  async function reloadData(){
+    el.dataStatus.textContent = (Store.state.ui.lang==='TR' ? 'Veri yükleniyor…' : 'Loading data…');
+    try{
+      const data = await fetchData();
+      lastData = data;
+      el.runAt.textContent = data && data.run_at ? data.run_at : '—';
+      el.dataStatus.textContent = (Store.state.ui.lang==='TR' ? 'Canlı veri' : 'Live data');
+      renderGrid(data);
+    } catch (e){
+      el.dataStatus.textContent = I18N[Store.state.ui.lang].noData;
+      // keep a minimal payload so widgets render with placeholders
+      lastData = { run_at: '—', kpis:{}, pipeline:[], lead_sources:[], ops:{}, daily_snapshots:[] };
+      destroyAllCharts();
+      renderGrid(lastData);
+      toast(I18N[Store.state.ui.lang].noData, String(e && e.message ? e.message : e));
+    }
+  }
+
+  (async function init(){
+    // Load chart library best-effort (dashboard still works without charts)
+    await ensureGoogleCharts();
+
+    // hydrate from persist
+    const prefs = await loadPersist();
+    hydratePersist(prefs);
+
+    // subscribe render
+    Store.subscribe(render);
+    render();
+
+    // initial data load (delay a tick for Apps Script sidebar readiness)
+    await new Promise(r=>setTimeout(r, 50));
+    await reloadData();
+
+    // Safety: if for any reason data is still missing, retry once after load
+    if (!lastData){
+      setTimeout(()=>{ try{ reloadData(); }catch(_e){} }, 600);
+    }
+  })();
+
+})();
+</script>
+
+</body>
 </html>

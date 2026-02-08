@@ -64,6 +64,59 @@ Avg Time to Close, SLA Compliance, Overdue Tasks, Avg First Touch, Error Rate, D
 - DASH_DETAILS_OPS
 - DASH_DETAILS_LEADS
 
+### 2.3 Tam Kapsam Görünürlük Katmanları (Karar)
+
+Tam kapsam dashboard, yalnızca satış KPI’ları değil **sistem sağlığı + veri yönetişimi + otomasyon + finans + uyumluluk**
+katmanlarını da görünür kılmalıdır. Aşağıdaki katmanlar tek bir “DASHBOARD” ana sayfasında özetlenir ve
+drill-down sayfalarına yönlenir.
+
+1) **Ops Health (Sistem Sağlığı)**
+   - Ingest pending, DLQ count, error rate, cursor drift (dakika)
+   - Son job run’lar (ORCH/ingest/dlq) ve başarısızlık uyarıları
+   - Kaynak tablolar: `OPS_DASHBOARD`, `INGEST_QUEUE`, `DLQ`, `JOB_RUN_LOG`
+
+2) **Data Governance / Kalite**
+   - Audit/Smoke PASS-FAIL, risk_flags özeti
+   - received_at format ve offset tutarlılığı
+   - Append-only EVENTS doğrulama
+   - Kaynak: `JOB_RUN_LOG`, `SMOKE_TEST_LOG`, audit çıktıları
+
+3) **Lead & Pipeline Sağlığı**
+   - Lead→Deal conversion, stage dağılımı, lead source dağılımı
+   - Stuck deal sayısı, SLA breach sayısı
+   - Kaynak: `CONTACTS`, `DEALS`, `DASHBOARD_PIPELINE`, `DASHBOARD_LEAD_SOURCES`, `DASHBOARD_SLA`
+
+4) **Task / Execution Sağlığı**
+   - Açık task, overdue, due today, SLA breach task’ları
+   - Kaynak: `TASKS`, `DASH_AGG_TASK_HEALTH`
+
+5) **Otomasyon & İletişim**
+   - Email drafts (queued/drafted/error), follow-up/win-back planları
+   - Kaynak: `EMAIL_DRAFTS`, `FOLLOWUP_SEQUENCES`, `DASH_AGG_EMAIL_OUTREACH`
+
+6) **Finance**
+   - Aylık/yıllık ciro hedef-gerçekleşen, vergi sonrası hedef, gider sonrası hedef
+   - Kur (FX) trend ve risk göstergeleri
+   - Kaynak: `DASH_AGG_FINANCE`, `DASH_AGG_FX`
+
+7) **Compliance / Listing Sağlığı**
+   - Portföy ve sözleşme uyumluluk eksikleri (missing fields count)
+   - Listing sign-off gate uyarıları
+   - Kaynak: `PROPERTIES`, `AGREEMENTS`, `DOCUMENT_CHECKLISTS`
+
+8) **Booking & Calendar**
+   - Booking request statü dağılımı, calendar sync hataları
+   - Kaynak: `BOOKING_SUMMARY`, `APPOINTMENTS`
+
+9) **Marketing / Growth**
+   - Attribution özetleri, offline conversions, outreach performance
+   - Kaynak: `ADS_ATTRIBUTION_SUMMARY`, `OFFLINE_CONVERSIONS`, `EMAIL_OUTREACH_SUMMARY`
+
+10) **Security & Access**
+   - Drive share audit issues
+   - Security SOP durumları
+   - Kaynak: `DRIVE_SHARE_AUDIT`, `SECURITY_SOP`, `ACCESS_INVENTORY`
+
 ---
 
 ## 3) Minimum MVP (Hızlı Kurulum)
@@ -107,7 +160,15 @@ Kolonlar:
 ### 4.6 DASH_AGG_OPS
 - timestamp, ingest_pending, dlq_count, error_rate, cursor_drift_minutes
 
-### 4.7 Ek Modüller
+### 4.7 Operasyon / Governance
+- DASH_AGG_GOVERNANCE (audit/smoke sonuç özeti)
+- DASH_AGG_JOBS (job run summary + last status)
+
+### 4.8 Finance
+- DASH_AGG_FINANCE (plan/actual/vergi/gider/net)
+- DASH_AGG_FX (kur trendleri)
+
+### 4.9 Ek Modüller
 - DASH_AGG_LISTINGS
 - DASH_AGG_MARKETING
 - DASH_AGG_COMMISSIONS
