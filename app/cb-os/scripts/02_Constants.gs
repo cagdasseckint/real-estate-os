@@ -69,6 +69,28 @@ const SHEETS = {
   TENANTS: 'TENANTS',
   COURSE_SESSIONS: 'COURSE_SESSIONS',
   KNOWLEDGE_BASE: 'KNOWLEDGE_BASE',
+  OPEN_HOUSES: 'OPEN_HOUSES',
+  OPEN_HOUSE_SIGNINS: 'OPEN_HOUSE_SIGNINS',
+  OPEN_HOUSE_FOLLOWUPS: 'OPEN_HOUSE_FOLLOWUPS',
+  BUYER_PROFILES: 'BUYER_PROFILES',
+  SELLER_PROFILES: 'SELLER_PROFILES',
+  TIME_LOGS: 'TIME_LOGS',
+  CHART_OF_ACCOUNTS: 'CHART_OF_ACCOUNTS',
+  GENERAL_LEDGER: 'GENERAL_LEDGER',
+  TENANT_LEDGER: 'TENANT_LEDGER',
+  LANDLORD_LEDGER: 'LANDLORD_LEDGER',
+  CLOSING_COSTS: 'CLOSING_COSTS',
+  LISTING_EXPENSES: 'LISTING_EXPENSES',
+  INVESTMENT_ANALYSIS: 'INVESTMENT_ANALYSIS',
+  MORTGAGE_CALC: 'MORTGAGE_CALC',
+  RENT_BUY_ANALYSIS: 'RENT_BUY_ANALYSIS',
+  QUOTATIONS: 'QUOTATIONS',
+  INVOICES: 'INVOICES',
+  RECEIPTS: 'RECEIPTS',
+  PROJECTS: 'PROJECTS',
+  MILESTONES: 'MILESTONES',
+  PROJECT_BUDGETS: 'PROJECT_BUDGETS',
+  ROLE_VIEWS: 'ROLE_VIEWS',
   
   // Finance Tables
   FIN_PARAMS: 'PARAMS',
@@ -371,6 +393,118 @@ const CANONICAL_HEADERS = {
 
   KNOWLEDGE_BASE: [
     'kb_id', 'title', 'category', 'doc_url', 'owner', 'updated_at'
+  ],
+
+  OPEN_HOUSES: [
+    'open_house_id', 'property_id', 'deal_id', 'title', 'event_date',
+    'start_time', 'end_time', 'location', 'host', 'notes', 'status'
+  ],
+
+  OPEN_HOUSE_SIGNINS: [
+    'signin_id', 'open_house_id', 'contact_id', 'full_name', 'email',
+    'phone', 'interested_in', 'created_at', 'notes'
+  ],
+
+  OPEN_HOUSE_FOLLOWUPS: [
+    'followup_id', 'open_house_id', 'contact_id', 'deal_id', 'status',
+    'next_step', 'next_step_date', 'assigned_to', 'created_at', 'updated_at', 'notes'
+  ],
+
+  BUYER_PROFILES: [
+    'buyer_profile_id', 'contact_id', 'deal_id', 'budget_min', 'budget_max',
+    'preferred_regions', 'property_type', 'bedrooms', 'bathrooms',
+    'financing_status', 'must_have', 'nice_to_have', 'timeline', 'notes', 'updated_at'
+  ],
+
+  SELLER_PROFILES: [
+    'seller_profile_id', 'contact_id', 'deal_id', 'target_price', 'price_floor',
+    'timeline', 'reason_for_sale', 'property_type', 'property_address',
+    'occupancy_status', 'notes', 'updated_at'
+  ],
+
+  TIME_LOGS: [
+    'time_log_id', 'log_date', 'activity_type', 'duration_minutes', 'contact_id',
+    'deal_id', 'property_id', 'notes', 'created_at'
+  ],
+
+  CHART_OF_ACCOUNTS: [
+    'account_id', 'account_name', 'account_type', 'account_category', 'is_active', 'notes'
+  ],
+
+  GENERAL_LEDGER: [
+    'entry_id', 'entry_date', 'account_id', 'debit', 'credit', 'currency',
+    'reference_type', 'reference_id', 'notes', 'created_at'
+  ],
+
+  TENANT_LEDGER: [
+    'entry_id', 'entry_date', 'tenant_id', 'property_id', 'debit', 'credit',
+    'currency', 'reference', 'notes', 'created_at'
+  ],
+
+  LANDLORD_LEDGER: [
+    'entry_id', 'entry_date', 'landlord_id', 'property_id', 'debit', 'credit',
+    'currency', 'reference', 'notes', 'created_at'
+  ],
+
+  CLOSING_COSTS: [
+    'closing_cost_id', 'deal_id', 'party', 'cost_type', 'amount', 'currency',
+    'cost_date', 'notes', 'created_at'
+  ],
+
+  LISTING_EXPENSES: [
+    'listing_expense_id', 'property_id', 'deal_id', 'expense_type', 'amount',
+    'currency', 'expense_date', 'vendor', 'notes', 'created_at'
+  ],
+
+  INVESTMENT_ANALYSIS: [
+    'analysis_id', 'deal_id', 'property_id', 'noi', 'cap_rate', 'roi',
+    'payback_years', 'cashflow_annual', 'vacancy_rate', 'assumptions', 'updated_at'
+  ],
+
+  MORTGAGE_CALC: [
+    'calc_id', 'principal', 'interest_rate', 'term_years', 'down_payment',
+    'monthly_payment', 'total_interest', 'created_at', 'notes'
+  ],
+
+  RENT_BUY_ANALYSIS: [
+    'analysis_id', 'monthly_rent', 'home_price', 'down_payment', 'interest_rate',
+    'term_years', 'rent_growth_rate', 'home_appreciation_rate', 'monthly_cost_diff',
+    'break_even_years', 'created_at', 'notes'
+  ],
+
+  QUOTATIONS: [
+    'quotation_id', 'contact_id', 'deal_id', 'property_id', 'quote_date',
+    'status', 'total_amount', 'currency', 'doc_url', 'notes', 'created_at'
+  ],
+
+  INVOICES: [
+    'invoice_id', 'contact_id', 'deal_id', 'property_id', 'invoice_date',
+    'due_date', 'status', 'subtotal', 'tax_amount', 'total_amount',
+    'currency', 'doc_url', 'notes', 'created_at'
+  ],
+
+  RECEIPTS: [
+    'receipt_id', 'contact_id', 'deal_id', 'property_id', 'receipt_date',
+    'amount', 'currency', 'payment_method', 'doc_url', 'notes', 'created_at'
+  ],
+
+  PROJECTS: [
+    'project_id', 'project_name', 'project_type', 'start_date', 'end_date',
+    'status', 'owner', 'budget_total', 'notes', 'created_at'
+  ],
+
+  MILESTONES: [
+    'milestone_id', 'project_id', 'title', 'target_date', 'status',
+    'progress_pct', 'notes', 'created_at'
+  ],
+
+  PROJECT_BUDGETS: [
+    'budget_id', 'project_id', 'category', 'planned_amount', 'actual_amount',
+    'currency', 'notes', 'updated_at'
+  ],
+
+  ROLE_VIEWS: [
+    'view_id', 'role', 'sheet_name', 'filter_json', 'created_at', 'notes'
   ],
   
   PARAMS: [
