@@ -242,6 +242,168 @@ function refreshDashboardCharts_() {
 }
 
 /**
+ * Seed sample data to visualize dashboard metrics.
+ * @param {Object} options - Seeding options
+ * @param {boolean} options.force - Seed even if previously seeded
+ * @returns {Object} Seeding summary
+ */
+function seedDashboardTestData_(options) {
+  const opts = options || {};
+  const force = Boolean(opts.force);
+  const seedKey = 'DASHBOARD_SAMPLE_DATA_SEEDED';
+  if (cfg_(seedKey, false) && !force) {
+    return { ok: false, reason: 'already_seeded' };
+  }
+
+  const timezone = cfg_('TIMEZONE', DEFAULTS.TIMEZONE);
+  const now = new Date();
+  const toIso = (dateObj) => formatIsoWithOffset_(dateObj, timezone);
+  const toDay = (dateObj) => Utilities.formatDate(dateObj, timezone, 'yyyy-MM-dd');
+  const shiftDays = (days, hourShift) => {
+    const dateObj = new Date(now);
+    dateObj.setDate(dateObj.getDate() + Number(days || 0));
+    if (hourShift) {
+      dateObj.setHours(dateObj.getHours() + Number(hourShift));
+    }
+    return dateObj;
+  };
+
+  const contactSpecs = [
+    { first_name: 'Ayşe', last_name: 'Yılmaz', email: 'ayse.yilmaz@example.com', phone: '+90 555 100 1001', source: 'instagram', tags: 'source:instagram,budget:3m', days_ago: 6 },
+    { first_name: 'Mehmet', last_name: 'Kaya', email: 'mehmet.kaya@example.com', phone: '+90 555 100 1002', source: 'referral', tags: 'Arkadaşlarınız', days_ago: 4 },
+    { first_name: 'Elif', last_name: 'Demir', email: 'elif.demir@example.com', phone: '+90 555 100 1003', source: 'sahibinden', tags: 'source:sahibinden,budget:2m', days_ago: 3 },
+    { first_name: 'Can', last_name: 'Koç', email: 'can.koc@example.com', phone: '+90 555 100 1004', source: 'web', tags: 'source:web', days_ago: 2 },
+    { first_name: 'Zeynep', last_name: 'Arslan', email: 'zeynep.arslan@example.com', phone: '+90 555 100 1005', source: 'facebook', tags: 'source:facebook,budget:4m', days_ago: 1 }
+  ];
+
+  const contacts = contactSpecs.map((spec) => {
+    const contact = ContactsRepo.create({
+      first_name: spec.first_name,
+      last_name: spec.last_name,
+      email: spec.email,
+      phone: spec.phone,
+      source: spec.source,
+      tags: spec.tags
+    });
+    const createdAt = toIso(shiftDays(-spec.days_ago, 2));
+    updateRow_(SHEETS.CONTACTS, contact._rowIndex, {
+      created_at: createdAt,
+      updated_at: createdAt,
+      last_contact_at: toIso(shiftDays(-spec.days_ago + 1, 4))
+    });
+    return contact;
+  });
+
+  const dealSpecs = [
+    { contact_index: 0, deal_type: 'BUYER', stage: 'FIRST_TOUCH', value: 2500000, source: 'instagram', days_ago: 5, last_stage_days_ago: 4, intent: 'urgent', region: 'Kadıköy' },
+    { contact_index: 1, deal_type: 'SELLER', stage: 'QUALIFIED', value: 4800000, source: 'referral', days_ago: 4, last_stage_days_ago: 1, intent: 'medium', region: 'Üsküdar' },
+    { contact_index: 2, deal_type: 'RENT', stage: 'SHOWING', value: 45000, source: 'sahibinden', days_ago: 3, last_stage_days_ago: 2, intent: 'low', region: 'Beşiktaş' },
+    { contact_index: 3, deal_type: 'BUYER', stage: 'OFFER', value: 3200000, source: 'web', days_ago: 2, last_stage_days_ago: 10, intent: 'urgent', region: 'Ataşehir' },
+    { contact_index: 4, deal_type: 'SELLER', stage: 'CLOSED_WON', value: 6200000, source: 'facebook', days_ago: 7, last_stage_days_ago: 6, intent: 'high', region: 'Sarıyer' }
+  ];
+
+  const deals = dealSpecs.map((spec) => {
+    const contact = contacts[spec.contact_index];
+    const deal = DealsRepo.create({
+      contact_id: contact ? contact.contact_id : '',
+      deal_type: spec.deal_type,
+      stage: spec.stage,
+      deal_value: spec.value,
+      currency: 'TRY',
+      lead_source: spec.source,
+      intent: spec.intent,
+      region: spec.region,
+      expected_close_date: toDay(shiftDays(21, 0)),
+      property_type: spec.deal_type === 'RENT' ? 'apartment' : 'residential'
+    });
+    const createdAt = toIso(shiftDays(-spec.days_ago, 1));
+    const lastStageAt = toIso(shiftDays(-spec.last_stage_days_ago, 3));
+    updateRow_(SHEETS.DEALS, deal._rowIndex, {
+      created_at: createdAt,
+      updated_at: toIso(shiftDays(-spec.last_stage_days_ago, 5)),
+      last_stage_change_at: lastStageAt
+    });
+    return deal;
+  });
+
+  const taskSpecs = [
+    { title: 'Kadıköy lead görüşmesi', deal_index: 0, days_from_now: -1, priority: 'high' },
+    { title: 'Sarıyer fiyat analizi', deal_index: 4, days_from_now: 2, priority: 'medium' },
+    { title: 'Üsküdar ilan onayı', deal_index: 1, days_from_now: 5, priority: 'low' }
+  ];
+
+  taskSpecs.forEach((spec) => {
+    const deal = deals[spec.deal_index];
+    TasksRepo.create({
+      entity_type: 'DEAL',
+      entity_id: deal ? deal.deal_id : '',
+      title: spec.title,
+      description: 'Dashboard test verisi görevi',
+      due_date: toDay(shiftDays(spec.days_from_now, 0)),
+      priority: spec.priority,
+      status: 'pending',
+      assigned_to: 'agent@example.com'
+    });
+  });
+
+  const eventSpecs = [
+    { deal_index: 0, event_type: 'FIRST_TOUCH', days_ago: 5, hour_shift: 4 },
+    { deal_index: 1, event_type: 'STAGE_CHANGE', days_ago: 4, hour_shift: 6, payload: { from: 'NEW', to: 'QUALIFIED' } },
+    { deal_index: 2, event_type: 'FIRST_TOUCH', days_ago: 3, hour_shift: 5 },
+    { deal_index: 3, event_type: 'STAGE_CHANGE', days_ago: 2, hour_shift: 2, payload: { from: 'QUALIFIED', to: 'OFFER' } }
+  ];
+
+  eventSpecs.forEach((spec) => {
+    const deal = deals[spec.deal_index];
+    EventsRepo.append({
+      entity_type: 'DEAL',
+      entity_id: deal ? deal.deal_id : '',
+      event_type: spec.event_type,
+      occurred_at: toIso(shiftDays(-spec.days_ago, spec.hour_shift)),
+      payload: spec.payload || {}
+    });
+  });
+
+  for (let i = 9; i >= 0; i -= 1) {
+    const runDate = shiftDays(-i, 1);
+    appendRow_(SHEETS.OPS_DASHBOARD, {
+      run_at: toIso(runDate),
+      ingest_pending: Math.max(0, 12 - i),
+      dlq_count: i % 3,
+      error_rate: (i % 3) / 10,
+      cursor_drift_minutes: 15 + i
+    });
+
+    const leadCount = 3 + (9 - i);
+    const dealCount = Math.max(1, Math.round(leadCount * 0.6));
+    appendRow_(SHEETS.DAILY_SNAPSHOT, {
+      snapshot_date: toDay(runDate),
+      run_at: toIso(runDate),
+      leads_created: leadCount,
+      deals_created: dealCount,
+      conversion_rate: dealCount / leadCount,
+      first_touch_count: Math.max(1, Math.round(leadCount * 0.5)),
+      avg_first_touch_minutes: 45 + i
+    });
+  }
+
+  setConfigValue_(seedKey, nowIso_(timezone), 'Seeded dashboard sample data');
+  refreshConfig_();
+  const summary = refreshDashboardSummary_();
+  refreshDashboardCharts_();
+
+  return {
+    ok: true,
+    contacts: contacts.length,
+    deals: deals.length,
+    tasks: taskSpecs.length,
+    ops_rows: 10,
+    snapshot_rows: 10,
+    dashboard_summary: summary
+  };
+}
+
+/**
  * Check if a sheet is part of dashboard utility tables.
  * @param {string} sheetName - Sheet name
  * @returns {boolean} True if dashboard table
