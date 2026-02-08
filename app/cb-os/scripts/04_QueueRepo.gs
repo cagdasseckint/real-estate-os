@@ -15,6 +15,30 @@ const QueueRepo = {
    * @returns {Object} Enqueued item with ingest_id
    */
   enqueue: function(item) {
+    const ingestType = item.ingest_type || '';
+    if (!isValidIngestType_(ingestType)) {
+      Logger.log('QUEUE | Invalid ingest_type: ' + ingestType);
+      if (typeof opsLog_ === 'function') {
+        opsLog_({
+          scope: 'invalid_ingest_type',
+          idempotency_key: item.idempotency_key || '-',
+          nno1_result: 'N/A',
+          checked_by: cfg_('SMOKE_CHECKED_BY', 'Real_Estate_Agent'),
+          notes: 'Invalid ingest_type: ' + ingestType
+        });
+      }
+      return { error: 'invalid_ingest_type', ingest_type: ingestType };
+    }
+
+    const payloadJson = typeof item.payload === 'string'
+      ? item.payload
+      : JSON.stringify(item.payload || {});
+    const payloadOk = validatePayloadSize_(payloadJson);
+    if (!payloadOk.ok) {
+      Logger.log('QUEUE | Payload too large: ' + payloadOk.size_kb + 'KB (limit ' + payloadOk.limit_kb + 'KB)');
+      return { error: 'payload_too_large', size_kb: payloadOk.size_kb, limit_kb: payloadOk.limit_kb };
+    }
+
     const ingestId = id_();
     const receivedAt = this._nextReceivedAt_();
     const sequenceId = this._nextSequenceId_();
@@ -24,8 +48,8 @@ const QueueRepo = {
       ingest_id: ingestId,
       received_at: receivedAt,
       sequence_id: sequenceId,
-      ingest_type: item.ingest_type || '',
-      payload_json: typeof item.payload === 'string' ? item.payload : JSON.stringify(item.payload || {}),
+      ingest_type: ingestType,
+      payload_json: payloadJson,
       source: item.source || '',
       source_ref_id: item.source_ref_id || '',
       idempotency_key: item.idempotency_key || '',
@@ -234,4 +258,31 @@ const QueueRepo = {
     return true;
   }
 };
+
+/**
+ * Validate ingest type against INGEST_TYPES.
+ * @param {string} ingestType - Ingest type value
+ * @returns {boolean} True if valid
+ */
+function isValidIngestType_(ingestType) {
+  if (!ingestType || typeof INGEST_TYPES === 'undefined') return false;
+  const values = Object.keys(INGEST_TYPES).map(key => INGEST_TYPES[key]);
+  return values.indexOf(ingestType) !== -1;
+}
+
+/**
+ * Validate payload size for queue items.
+ * @param {string} payloadJson - JSON payload string
+ * @returns {{ok: boolean, size_kb: number, limit_kb: number}} Validation result
+ */
+function validatePayloadSize_(payloadJson) {
+  const limitKb = Number(cfg_('MAX_PAYLOAD_SIZE_KB', DEFAULTS.MAX_PAYLOAD_SIZE_KB)) || 64;
+  const bytes = Utilities.newBlob(payloadJson || '').getBytes().length;
+  const sizeKb = Math.round(bytes / 1024 * 100) / 100;
+  return {
+    ok: sizeKb <= limitKb,
+    size_kb: sizeKb,
+    limit_kb: limitKb
+  };
+}
 // Çağdaş Seçkin Tüfekci - Real Estate Agent

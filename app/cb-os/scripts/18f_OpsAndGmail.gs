@@ -172,12 +172,16 @@ function runDriveShareAudit_() {
  */
 function processGmailSignals_(label, sinceIso) {
   const result = { scanned: 0, signals: 0, enqueued: 0 };
+  const safeLabel = sanitizeGmailLabel_(label);
+  if (!safeLabel) return result;
+
   const queryDate = sinceIso ? new Date(sinceIso) : null;
-  const query = queryDate
-    ? 'label:' + label + ' after:' + Math.floor(queryDate.getTime() / 1000)
-    : 'label:' + label;
-  
-  const threads = GmailApp.search(query, 0, 50);
+  const query = queryDate && !isNaN(queryDate.getTime())
+    ? 'label:' + safeLabel + ' after:' + Math.floor(queryDate.getTime() / 1000)
+    : 'label:' + safeLabel;
+
+  const limit = Number(cfg_('GMAIL_SCAN_THREAD_LIMIT', DEFAULTS.GMAIL_SCAN_THREAD_LIMIT)) || 50;
+  const threads = GmailApp.search(query, 0, limit);
   for (const thread of threads) {
     result.scanned++;
     const messages = thread.getMessages();
@@ -194,19 +198,32 @@ function processGmailSignals_(label, sinceIso) {
       payload: {
         email: email,
         subject: subject,
-        label: label,
-        signal_type: 'GMAIL_LABEL:' + label,
+        label: safeLabel,
+        signal_type: 'GMAIL_LABEL:' + safeLabel,
         weight: weight
       },
       source: 'gmail',
       source_ref_id: thread.getId(),
-      idempotency_key: 'gmail_signal:' + thread.getId() + ':' + messageId + ':' + label
+      idempotency_key: 'gmail_signal:' + thread.getId() + ':' + messageId + ':' + safeLabel
     });
     
     result.enqueued++;
   }
   
   return result;
+}
+
+/**
+ * Sanitize Gmail label input to avoid query injection.
+ * @param {string} label - Raw label
+ * @returns {string} Sanitized label
+ */
+function sanitizeGmailLabel_(label) {
+  if (!label) return '';
+  return String(label)
+    .trim()
+    .replace(/[^a-zA-Z0-9/_\- ]/g, '')
+    .replace(/\s+/g, ' ');
 }
 
 /**

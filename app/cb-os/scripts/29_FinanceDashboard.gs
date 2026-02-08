@@ -149,7 +149,26 @@ function refreshFinanceDashboard_() {
  */
 function getFinanceDateParts_(dateValue) {
   if (!dateValue) return null;
-  const date = new Date(dateValue);
+  const date = parseFinanceDate_(dateValue);
   if (isNaN(date.getTime())) return null;
   return { year: date.getFullYear(), month: date.getMonth() + 1 };
+}
+
+/**
+ * Parse finance dates from common sheet formats (yyyy-MM-dd, dd.MM.yyyy).
+ * @param {*} dateValue - Date value (string or Date)
+ * @returns {Date} Parsed date
+ */
+function parseFinanceDate_(dateValue) {
+  if (dateValue instanceof Date) return dateValue;
+  const raw = String(dateValue || '').trim();
+  if (!raw) return new Date('Invalid');
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    return new Date(raw);
+  }
+  const dotMatch = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+  if (dotMatch) {
+    return new Date(Number(dotMatch[3]), Number(dotMatch[2]) - 1, Number(dotMatch[1]));
+  }
+  return new Date(raw);
 }

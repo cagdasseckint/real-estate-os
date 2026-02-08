@@ -238,12 +238,16 @@ function gmail_scan_job(ctx) {
   
   try {
     const labels = cfg_('GMAIL_SCAN_LABELS', DEFAULTS.GMAIL_SCAN_LABELS).split(',');
+    const lookbackDays = cfg_('GMAIL_SCAN_DAYS_LOOKBACK', DEFAULTS.GMAIL_SCAN_DAYS_LOOKBACK);
+    const fallbackSince = new Date();
+    fallbackSince.setDate(fallbackSince.getDate() - Number(lookbackDays || 0));
+    const sinceIso = cursorBefore || formatIsoWithOffset_(fallbackSince, cfg_('TIMEZONE', DEFAULTS.TIMEZONE));
     
     for (const label of labels) {
       try {
         const labelName = label.trim();
         Logger.log('GMAIL_SCAN | Scanning label: ' + labelName);
-        const signalResult = processGmailSignals_(labelName, cursorBefore);
+        const signalResult = processGmailSignals_(labelName, sinceIso);
         result.scanned += signalResult.scanned;
         result.leads_found += signalResult.enqueued;
         
@@ -288,6 +292,8 @@ function guardrails_job(ctx) {
   };
   
   try {
+    const pendingTasks = TasksRepo.getPending();
+
     // Check stuck deals
     const stuckDeals = DealsRepo.getStuck();
     result.stuck_deals = stuckDeals.length;
@@ -296,16 +302,19 @@ function guardrails_job(ctx) {
       Logger.log('GUARDRAILS | Stuck deal: ' + deal.deal_id + ' in stage ' + deal.stage);
       
       // Create alert task
-      TasksRepo.create({
-        entity_type: 'DEAL',
-        entity_id: deal.deal_id,
-        title: 'ALERT: Deal stuck in ' + deal.stage,
-        description: 'This deal has been in ' + deal.stage + ' for more than ' + 
-                     cfg_('STUCK_STAGE_DAYS_THRESHOLD', DEFAULTS.STUCK_STAGE_DAYS_THRESHOLD) + ' days',
-        priority: 'high',
-        status: 'pending'
-      });
-      result.alerts_created++;
+      const alertTitle = 'ALERT: Deal stuck in ' + deal.stage;
+      if (!hasPendingAlertTask_(pendingTasks, deal.deal_id, alertTitle)) {
+        TasksRepo.create({
+          entity_type: 'DEAL',
+          entity_id: deal.deal_id,
+          title: alertTitle,
+          description: 'This deal has been in ' + deal.stage + ' for more than ' + 
+                       cfg_('STUCK_STAGE_DAYS_THRESHOLD', DEFAULTS.STUCK_STAGE_DAYS_THRESHOLD) + ' days',
+          priority: 'high',
+          status: 'pending'
+        });
+        result.alerts_created++;
+      }
     }
     
     // Check overdue tasks
@@ -343,15 +352,18 @@ function guardrails_job(ctx) {
       cutoff.setDate(cutoff.getDate() + Number(slaDays));
       if (new Date() > cutoff) {
         result.sla_violations++;
-        TasksRepo.create({
-          entity_type: 'DEAL',
-          entity_id: deal.deal_id,
-          title: 'SLA Breach: ' + deal.stage,
-          description: 'Stage SLA ' + slaDays + ' gün aşıldı.',
-          priority: 'high',
-          status: 'pending'
-        });
-        result.alerts_created++;
+        const breachTitle = 'SLA Breach: ' + deal.stage;
+        if (!hasPendingAlertTask_(pendingTasks, deal.deal_id, breachTitle)) {
+          TasksRepo.create({
+            entity_type: 'DEAL',
+            entity_id: deal.deal_id,
+            title: breachTitle,
+            description: 'Stage SLA ' + slaDays + ' gün aşıldı.',
+            priority: 'high',
+            status: 'pending'
+          });
+          result.alerts_created++;
+        }
       }
     }
     
@@ -369,6 +381,21 @@ function guardrails_job(ctx) {
     updateDailySnapshot_();
     refreshFinanceDashboard_();
     archiveOperationalTables_();
+
+    if (cfg_('DASHBOARD_AUTO_REFRESH', DEFAULTS.DASHBOARD_AUTO_REFRESH)) {
+      if (cfg_('DASHBOARD_SUMMARY_ENABLED', DEFAULTS.DASHBOARD_SUMMARY_ENABLED)) {
+        refreshDashboardSummary_();
+      }
+      if (cfg_('DASHBOARD_CHARTS_ENABLED', DEFAULTS.DASHBOARD_CHARTS_ENABLED)) {
+        refreshDashboardCharts_();
+      }
+      if (cfg_('DASHBOARD_UNIFIED_INCREMENTAL', DEFAULTS.DASHBOARD_UNIFIED_INCREMENTAL)) {
+        refreshUnifiedTables_({
+          incremental: true,
+          max_rows: cfg_('DASHBOARD_UNIFIED_MAX_ROWS', DEFAULTS.DASHBOARD_UNIFIED_MAX_ROWS)
+        });
+      }
+    }
     
     // Drive share audit
     runDriveShareAudit_();
@@ -395,6 +422,22 @@ function guardrails_job(ctx) {
   
   Logger.log('GUARDRAILS | Complete: ' + JSON.stringify(result));
   return result;
+}
+
+/**
+ * Check if there is already a pending alert task for a deal/title.
+ * @param {Array<Object>} pendingTasks - Pending tasks list
+ * @param {string} dealId - Deal ID
+ * @param {string} title - Task title
+ * @returns {boolean} True if exists
+ */
+function hasPendingAlertTask_(pendingTasks, dealId, title) {
+  if (!pendingTasks || !pendingTasks.length) return false;
+  return pendingTasks.some(task =>
+    task.entity_id === dealId &&
+    task.status === 'pending' &&
+    task.title === title
+  );
 }
 
 /**
