@@ -81,6 +81,21 @@ function createOpenHouseFollowup_(payload) {
     notes: payload.notes || ''
   };
   appendRow_(SHEETS.OPEN_HOUSE_FOLLOWUPS, row);
+  if (payload.create_task !== false && typeof TasksRepo !== 'undefined') {
+    const dueDate = row.next_step_date
+      ? new Date(row.next_step_date).toISOString().split('T')[0]
+      : '';
+    TasksRepo.create({
+      entity_type: 'OPEN_HOUSE',
+      entity_id: row.open_house_id || '',
+      title: 'Open house follow-up',
+      description: row.next_step || 'Open house visitor follow-up',
+      priority: 'medium',
+      status: 'pending',
+      assigned_to: row.assigned_to || '',
+      due_date: dueDate
+    });
+  }
   return row;
 }
 
@@ -118,6 +133,16 @@ function upsertBuyerProfile_(payload) {
   } else {
     appendRow_(SHEETS.BUYER_PROFILES, record);
   }
+  if (typeof EventsRepo !== 'undefined') {
+    EventsRepo.append({
+      entity_type: 'BUYER_PROFILE',
+      entity_id: record.buyer_profile_id,
+      event_type: 'BUYER_PROFILE_UPDATED',
+      payload: record,
+      source: 'system',
+      idempotency_key: record.buyer_profile_id + '_' + record.updated_at
+    });
+  }
   return record;
 }
 
@@ -148,6 +173,16 @@ function upsertSellerProfile_(payload) {
     updateRow_(SHEETS.SELLER_PROFILES, existing._rowIndex, record);
   } else {
     appendRow_(SHEETS.SELLER_PROFILES, record);
+  }
+  if (typeof EventsRepo !== 'undefined') {
+    EventsRepo.append({
+      entity_type: 'SELLER_PROFILE',
+      entity_id: record.seller_profile_id,
+      event_type: 'SELLER_PROFILE_UPDATED',
+      payload: record,
+      source: 'system',
+      idempotency_key: record.seller_profile_id + '_' + record.updated_at
+    });
   }
   return record;
 }
@@ -476,6 +511,8 @@ function applyUiValidations_() {
   const validations = [
     { sheet: SHEETS.OPEN_HOUSES, column: 'status', values: ['scheduled', 'completed', 'cancelled'] },
     { sheet: SHEETS.OPEN_HOUSE_FOLLOWUPS, column: 'status', values: ['pending', 'contacted', 'won', 'lost'] },
+    { sheet: SHEETS.BUYER_PROFILES, column: 'financing_status', values: ['cash', 'mortgage', 'preapproved', 'unknown'] },
+    { sheet: SHEETS.TIME_LOGS, column: 'activity_type', values: ['call', 'meeting', 'showing', 'admin', 'marketing', 'followup'] },
     { sheet: SHEETS.CLOSING_COSTS, column: 'party', values: ['buyer', 'seller', 'broker', 'other'] },
     { sheet: SHEETS.LISTING_EXPENSES, column: 'expense_type', values: ['marketing', 'staging', 'photos', 'ads', 'other'] },
     { sheet: SHEETS.QUOTATIONS, column: 'status', values: ['draft', 'sent', 'accepted', 'rejected'] },
@@ -516,10 +553,21 @@ function refreshRoleViews_() {
     const data = source.getDataRange().getValues().slice(1);
     const filter = parseJsonSafe_(view.filter_json) || {};
     const filtered = data.filter(row => {
-      if (!filter.column || filter.value === undefined) return true;
+      if (!filter.column) return true;
       const idx = headers.indexOf(filter.column);
       if (idx === -1) return true;
-      return String(row[idx]) === String(filter.value);
+      const value = row[idx];
+      const operator = (filter.operator || '=').toLowerCase();
+      if (operator === 'in' && Array.isArray(filter.values)) {
+        return filter.values.map(String).includes(String(value));
+      }
+      if (operator === 'contains') {
+        return String(value || '').indexOf(String(filter.value || '')) !== -1;
+      }
+      if (operator === '!=') {
+        return String(value) !== String(filter.value);
+      }
+      return String(value) === String(filter.value);
     });
     const targetName = 'VIEW_' + String(view.role || 'role').toUpperCase() + '_' + sheetName;
     const target = sheet_(targetName, true);
@@ -532,4 +580,26 @@ function refreshRoleViews_() {
     results.push({ view: targetName, rows: filtered.length });
   });
   return { ok: true, views: results };
+}
+
+/**
+ * Extension summary job for validations and role views.
+ * @param {Object} ctx - Job context
+ * @returns {Object} Job result
+ */
+function extensions_summary_job(ctx) {
+  ctx = ctx || createJobContextSafe_();
+  const jobName = 'extensions_summary_job';
+  const result = { validations_applied: 0, role_views_refreshed: 0 };
+  if (cfg_('MODULES_UI_VALIDATION_ENABLED', DEFAULTS.MODULES_UI_VALIDATION_ENABLED)) {
+    applyUiValidations_();
+    result.validations_applied = 1;
+  }
+  if (cfg_('MODULES_ROLE_VIEWS_ENABLED', DEFAULTS.MODULES_ROLE_VIEWS_ENABLED)) {
+    const viewResult = refreshRoleViews_();
+    result.role_views_refreshed = viewResult.views ? viewResult.views.length : 0;
+  }
+  logJobRunSafe_(ctx, jobName, '', '', '', 'Validations=' + result.validations_applied +
+    ', RoleViews=' + result.role_views_refreshed);
+  return result;
 }
