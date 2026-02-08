@@ -106,7 +106,9 @@ const CANONICAL_HEADERS = {
   CONTACTS: [
     'contact_id', 'created_at', 'updated_at', 'first_name', 'last_name',
     'email', 'phone', 'whatsapp', 'source', 'source_ref_id', 'status',
-    'tags', 'notes', 'kvkk_consent', 'preferred_contact_method', 'last_contact_at'
+    'tags', 'notes', 'kvkk_consent', 'preferred_contact_method', 'last_contact_at',
+    'phone_alt', 'profession', 'address', 'fax', 'work_phone', 'authorized_name',
+    'authorized_phone', 'contact_role', 'follow_up', 'next_contact_at'
   ],
   
   DEALS: [
@@ -205,12 +207,49 @@ const CANONICAL_HEADERS = {
   PROPERTIES: [
     'property_id', 'created_at', 'updated_at', 'deal_id', 'property_type',
     'status', 'title', 'address', 'city', 'district', 'size_m2',
-    'price', 'currency', 'owner_contact_id', 'notes'
+    'price', 'currency', 'owner_contact_id', 'notes',
+    'zoning_status', 'occupancy_permit_status', 'title_deed_info',
+    'building_age', 'current_usage', 'floor', 'facade', 'view',
+    'transport_distance_meters', 'social_facility_distance_meters',
+    'room_count', 'living_room_count', 'bathroom_count', 'toilet_count',
+    'balcony_count', 'interior_size_details', 'building_type', 'amenities',
+    'land_share', 'emsal', 'max_building_height', 'planted_crop_exists',
+    'encumbrances', 'property_legal_status', 'neighborhood', 'street',
+    'building_name_no', 'apartment_no', 'parcel_info', 'credit_eligible',
+    'title_deed_status', 'renovation_year', 'parking_open', 'parking_closed',
+    'dues_amount', 'housing_type', 'housing_style', 'building_floor_count',
+    'site_activity_fitness', 'site_activity_basketball', 'site_activity_tennis',
+    'site_activity_pool_open', 'site_activity_pool_closed', 'site_activity_full_access',
+    'security_present', 'elevator_present', 'balcony_present',
+    'furnished_status', 'occupancy_status',
+    'heating_central', 'heating_kombi', 'heating_floor', 'heating_aircon',
+    'bathroom_hilton', 'bathroom_shower', 'bathroom_wc',
+    'kitchen_builtin', 'kitchen_ready',
+    'room_1', 'room_2', 'room_3', 'room_4', 'room_5', 'room_6',
+    'deposit_amount',
+    'owner_notes', 'asking_price_sale', 'sale_is_determined', 'sale_reason',
+    'sale_previous_occupancy', 'sale_years_owned', 'sale_time_on_market',
+    'sale_price_basis', 'sale_renovation_done', 'sale_written_offer',
+    'sale_experience', 'sale_urgency',
+    'asking_price_rent', 'rent_previously_leased', 'rent_last_tenant_source',
+    'rent_owner_occupied', 'rent_time_vacant', 'rent_move_out_timeframe',
+    'rent_tenant_criteria', 'rent_renovation_preference', 'rent_sell_if_good_offer',
+    'rent_other_agents', 'rent_last_tenant_price'
   ],
   
   AGREEMENTS: [
     'agreement_id', 'property_id', 'contact_id', 'agreement_type',
-    'start_date', 'end_date', 'commission_rate', 'status', 'notes'
+    'start_date', 'end_date', 'commission_rate', 'status', 'notes',
+    'agreement_number', 'agreement_signed_at', 'agreement_copies', 'agreement_doc_url',
+    'broker_license_no', 'broker_company_name', 'broker_contact_email',
+    'broker_contact_phone', 'responsible_agent_name', 'responsible_agent_signature_ref',
+    'owner_identity_type', 'owner_identity_no', 'owner_full_name', 'owner_company_name',
+    'owner_company_contact', 'owner_representative_name', 'owner_signature_ref',
+    'services_description', 'service_fee_amount', 'service_fee_currency',
+    'rights_and_obligations_text', 'cancellation_fee', 'cancellation_fee_type',
+    'penalty_clause_text', 'broker_notice_address', 'owner_notice_address',
+    'property_legal_status', 'buyer_or_tenant_role', 'additional_disclosures',
+    'info_source_type', 'owner_declaration_text', 'owner_declaration_signed_at'
   ],
   
   DOCUMENT_CHECKLISTS: [
@@ -404,5 +443,60 @@ const ALLOWED_RISK_FLAGS = [
   'DEALS_LATEST_ROW_BY_ROWINDEX',
   'CONTACTS_HEADER_MISMATCH',
   'DEALS_HEADER_MISMATCH'
+];
+
+/**
+ * Allowed contact tags taxonomy
+ */
+const CONTACT_TAGS = [
+  'Aileniz',
+  'Akrabalarınız',
+  'Arkadaşlarınız',
+  'Komşularınız',
+  'Eski İş Arkadaşlarınız',
+  'Gayrimenkul Danışmanları',
+  'Öğretmenleriniz / çocuğunuzun öğretmenleri',
+  'Kulüpler / Dernekler',
+  'Spor Salonu Grubunuz',
+  'Kuaförünüz / Berberiniz',
+  'Doktorlarınız',
+  'Dişçiniz',
+  'Bankacınız / Sigortacınız',
+  'Eski Okul Arkadaşlarınız',
+  'Askerlik Arkadaşlarınız',
+  'Eski Komşularınız',
+  'Site / Apt. Yönetimi',
+  'Avukatınız / Ailenizin Avukatı',
+  'Çözüm Ortakları (nakliyeci, boyacı vs.)',
+  'Reklamcınız / matbaacınız',
+  'Mali Müşaviriniz',
+  'Eczacınız',
+  'Veterineriniz',
+  'Terziniz / Kurutemizlemeciniz',
+  'En Sık Gittiğiniz Restoran',
+  'Postacınız',
+  'Katıldığınız Kurslar',
+  'Çocuğunuzun Katıldığı Kurslar',
+  'Çiçekçiniz',
+  'Eski Müşterileriniz',
+  'Sosyal Medyadan Tanıdıklarınız',
+  'Kapanan Şirketler',
+  'En Sık Alışveriş Yaptığınız Mağazalar',
+  'Oto Yıkamacınız',
+  'Gönüllü olduğunuz Sivil Toplum Kuruluşları',
+  'Çocuğunuzun Veli Grupları',
+  'Mahalle Esnafı (kasap / manav vs.)',
+  'Arkadaşlarınızın Arkadaşları',
+  'En Sık Benzin Aldığınız Yer',
+  'Diğer'
+];
+
+/**
+ * Allowed tag prefixes for dynamic tags (ex: source:..., service:...)
+ */
+const CONTACT_TAG_PREFIXES = [
+  'source',
+  'service',
+  'budget'
 ];
 // Çağdaş Seçkin Tüfekci - Real Estate Agent
