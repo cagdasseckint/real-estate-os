@@ -70,6 +70,20 @@ const SHEETS = {
   COURSE_SESSIONS: 'COURSE_SESSIONS',
   KNOWLEDGE_BASE: 'KNOWLEDGE_BASE',
   
+  // Finance Tables
+  FIN_PARAMS: 'PARAMS',
+  FIN_PLAN: 'PLAN',
+  FIN_MONTHLY: 'MONTHLY',
+  FIN_SUMMARY: 'SUMMARY',
+  FIN_TRANSACTIONS: 'TRANSACTIONS',
+  FIN_TAX: 'TAX',
+  FIN_FX_RATES: 'FX_RATES',
+  FIN_FX_HISTORY: 'FX_HISTORY',
+  FIN_DUE_REALLOSS: 'DUE_REALLOSS',
+  FIN_EXPENSES: 'EXPENSES',
+  FIN_DASH_AGG: 'DASH_AGG_FINANCE',
+  FIN_DASH_FX: 'DASH_AGG_FX',
+  
   // Dashboard Tables
   DAILY_SNAPSHOT: 'DAILY_SNAPSHOT',
   WEEKLY_SUMMARY: 'WEEKLY_SUMMARY'
@@ -357,6 +371,81 @@ const CANONICAL_HEADERS = {
 
   KNOWLEDGE_BASE: [
     'kb_id', 'title', 'category', 'doc_url', 'owner', 'updated_at'
+  ],
+  
+  PARAMS: [
+    'param_key', 'param_value', 'description'
+  ],
+  
+  PLAN: [
+    'year', 'consultant', 'annual_gross_ciro_target', 'avg_sale_price',
+    'service_fee_rate', 'office_share_rate', 'cbtr_share_rate',
+    'annual_living_cost', 'operating_cost', 'listing_to_sale_conv_rate',
+    'appointment_to_listing_conv_rate', 'office_cbtr_share_amount',
+    'annual_net_ciro', 'annual_profit_target', 'avg_fee_income_per_deal',
+    'annual_sales_target', 'monthly_sales_target', 'annual_listing_target',
+    'monthly_listing_target', 'annual_appointment_target',
+    'monthly_appointment_target', 'monthly_ciro_target',
+    'annual_income_tax_estimate', 'post_tax_ciro_target',
+    'post_expense_ciro_target'
+  ],
+  
+  MONTHLY: [
+    'year', 'month', 'consultant', 'plan_year_key',
+    'appointment_target', 'appointment_actual', 'appointment_target_pct',
+    'listing_target', 'listing_actual', 'listing_target_pct',
+    'sales_target', 'sales_actual', 'sales_target_pct',
+    'ciro_target', 'ciro_actual', 'ciro_target_pct',
+    'transaction_net_ciro_month'
+  ],
+  
+  SUMMARY: [
+    'year', 'consultant',
+    'appointment_target_year', 'appointment_actual_year',
+    'listing_target_year', 'listing_actual_year',
+    'sales_target_year', 'sales_actual_year',
+    'ciro_target_year', 'ciro_actual_year',
+    'transaction_net_ciro_year'
+  ],
+  
+  TRANSACTIONS: [
+    'transaction_date', 'due_date', 'sale_price', 'service_fee_rate', 'transaction_type',
+    'buyer_service_fee', 'buyer_vat', 'buyer_net_ciro',
+    'seller_service_fee', 'seller_vat', 'seller_net_ciro',
+    'transaction_total_net_ciro', 'office_share_amount', 'cbtr_share_amount',
+    'consultant_net_ciro', 'office_tax', 'cbtr_tax', 'consultant_tax',
+    'office_net_after_tax', 'cbtr_net_after_tax', 'consultant_net_after_tax'
+  ],
+  
+  TAX: [
+    'metric', 'value', 'notes'
+  ],
+  
+  FX_RATES: [
+    'currency_pair', 'open_rate', 'close_rate', 'notes'
+  ],
+  
+  FX_HISTORY: [
+    'date', 'usd_try', 'eur_try', 'gbp_try', 'jpy_try', 'chf_try', 'rub_try', 'cny_try'
+  ],
+  
+  DUE_REALLOSS: [
+    'transaction_id', 'transaction_date', 'due_date',
+    'nominal_amount_try', 'fx_pair', 'fx_rate_at_transaction',
+    'fx_rate_at_due_date', 'real_amount_base',
+    'due_date_real_amount_try', 'real_gain_loss_try'
+  ],
+
+  EXPENSES: [
+    'expense_date', 'expense_category', 'expense_amount', 'notes'
+  ],
+  
+  DASH_AGG_FINANCE: [
+    'metric', 'value', 'run_at'
+  ],
+  
+  DASH_AGG_FX: [
+    'currency_pair', 'open_rate', 'close_rate', 'run_at'
   ]
 };
 

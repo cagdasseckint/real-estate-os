@@ -111,7 +111,19 @@ function bootstrapSheets_() {
     SHEETS.EMAIL_OUTREACH_SUMMARY,
     SHEETS.TENANTS,
     SHEETS.COURSE_SESSIONS,
-    SHEETS.KNOWLEDGE_BASE
+    SHEETS.KNOWLEDGE_BASE,
+    SHEETS.FIN_PARAMS,
+    SHEETS.FIN_PLAN,
+    SHEETS.FIN_MONTHLY,
+    SHEETS.FIN_SUMMARY,
+    SHEETS.FIN_TRANSACTIONS,
+    SHEETS.FIN_TAX,
+    SHEETS.FIN_FX_RATES,
+    SHEETS.FIN_FX_HISTORY,
+    SHEETS.FIN_DUE_REALLOSS,
+    SHEETS.FIN_EXPENSES,
+    SHEETS.FIN_DASH_AGG,
+    SHEETS.FIN_DASH_FX
   ];
   
   for (const sheetName of requiredSheets) {
@@ -163,6 +175,23 @@ function bootstrapSheets_() {
   
   if (report.created.includes(SHEETS.SECURITY_SOP)) {
     seedSecuritySop_();
+  }
+
+  if (report.created.some(name => [
+    SHEETS.FIN_PARAMS,
+    SHEETS.FIN_PLAN,
+    SHEETS.FIN_MONTHLY,
+    SHEETS.FIN_SUMMARY,
+    SHEETS.FIN_TRANSACTIONS,
+    SHEETS.FIN_TAX,
+    SHEETS.FIN_FX_RATES,
+    SHEETS.FIN_FX_HISTORY,
+    SHEETS.FIN_DUE_REALLOSS,
+    SHEETS.FIN_EXPENSES,
+    SHEETS.FIN_DASH_AGG,
+    SHEETS.FIN_DASH_FX
+  ].includes(name))) {
+    seedFinanceSheets_();
   }
   
   Logger.log('BOOTSTRAP | Report: ' + JSON.stringify(report));
@@ -412,6 +441,223 @@ function seedSecuritySop_() {
     ['SOP-004', 'Access', 'Ayrılan kullanıcı erişimleri kapatıldı', 'pending', '']
   ];
   
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+/**
+ * Seed finance sheets with default parameters and formulas.
+ */
+function seedFinanceSheets_() {
+  seedFinanceParams_();
+  seedFinancePlan_();
+  seedFinanceMonthly_();
+  seedFinanceSummary_();
+  seedFinanceTransactions_();
+  seedFinanceTax_();
+  seedFinanceFxRates_();
+  seedFinanceFxHistory_();
+  seedFinanceDueRealLoss_();
+  seedFinanceExpenses_();
+}
+
+function seedFinanceParams_() {
+  const sheet = sheet_(SHEETS.FIN_PARAMS, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  const rows = [
+    ['office_share_rate', 0.455, 'Ofis payı oranı'],
+    ['cbtr_share_rate', 0.09, 'CBTR payı oranı'],
+    ['default_service_fee_rate', 0.02, 'Varsayılan hizmet bedeli oranı'],
+    ['vat_rate', 0.20, 'KDV oranı'],
+    ['vat_included', false, 'KDV dahil hesaplama modu (true/false)'],
+    ['share_tax_rate', 0.20, 'Pay bazlı stopaj/vergi oranı'],
+    ['listing_to_sale_conv_rate', 0.30, 'Yetki → Satış dönüşüm oranı'],
+    ['appointment_to_listing_conv_rate', 0.20, 'Randevu → Yetki dönüşüm oranı'],
+    ['year_tax_threshold_1', 190000, 'Gelir vergisi 1. dilim üst sınırı'],
+    ['year_tax_threshold_2', 400000, 'Gelir vergisi 2. dilim üst sınırı'],
+    ['year_tax_threshold_3', 1500000, 'Gelir vergisi 3. dilim üst sınırı'],
+    ['year_tax_threshold_4', 5300000, 'Gelir vergisi 4. dilim üst sınırı'],
+    ['tax_base_1', 28500, '2. dilim taban vergi tutarı'],
+    ['tax_base_2', 70500, '3. dilim taban vergi tutarı'],
+    ['tax_base_3', 367500, '4. dilim taban vergi tutarı'],
+    ['tax_base_4', 1697500, '5. dilim taban vergi tutarı']
+  ];
+
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+function seedFinancePlan_() {
+  const sheet = sheet_(SHEETS.FIN_PLAN, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  sheet.getRange('E2').setFormula('=PARAMS!$B$3');
+  sheet.getRange('F2').setFormula('=PARAMS!$B$1');
+  sheet.getRange('G2').setFormula('=PARAMS!$B$2');
+  sheet.getRange('J2').setFormula('=PARAMS!$B$7');
+  sheet.getRange('K2').setFormula('=PARAMS!$B$8');
+
+  const formulas = [
+    '=IF(C2="","",C2*(F2+G2))',
+    '=IF(C2="","",C2*(1-(F2+G2)))',
+    '=IF(M2="","",M2-H2-I2)',
+    '=IF(AND(D2<>"",E2<>""),D2*E2*(1-(F2+G2)),"")',
+    '=IF(O2="","",C2/O2)',
+    '=IF(P2="","",P2/12)',
+    '=IF(J2="","",P2/J2)',
+    '=IF(R2="","",R2/12)',
+    '=IF(K2="","",R2/K2)',
+    '=IF(T2="","",T2/12)',
+    '=IF(C2="","",C2/12)',
+    '=IF(M2="","",IFS(M2<=PARAMS!$B$9,M2*0.15,M2<=PARAMS!$B$10,PARAMS!$B$13+(M2-PARAMS!$B$9)*0.20,M2<=PARAMS!$B$11,PARAMS!$B$14+(M2-PARAMS!$B$10)*0.27,M2<=PARAMS!$B$12,PARAMS!$B$15+(M2-PARAMS!$B$11)*0.35,TRUE,PARAMS!$B$16+(M2-PARAMS!$B$12)*0.40))',
+    '=IF(M2="","",M2-W2)',
+    '=IF(X2="","",X2-H2-I2)'
+  ];
+
+  sheet.getRange(2, 12, 1, formulas.length).setFormulas([formulas]);
+}
+
+function seedFinanceMonthly_() {
+  const sheet = sheet_(SHEETS.FIN_MONTHLY, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+  sheet.getRange('E2').setFormula('=IF(AND($A2<>"",$C2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$C2),PLAN!$U:$U),"")');
+  sheet.getRange('G2').setFormula('=IF(E2=0,"",F2/E2)');
+  sheet.getRange('H2').setFormula('=IF(AND($A2<>"",$C2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$C2),PLAN!$S:$S),"")');
+  sheet.getRange('J2').setFormula('=IF(H2=0,"",I2/H2)');
+  sheet.getRange('K2').setFormula('=IF(AND($A2<>"",$C2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$C2),PLAN!$Q:$Q),"")');
+  sheet.getRange('M2').setFormula('=IF(K2=0,"",L2/K2)');
+  sheet.getRange('N2').setFormula('=IF(AND($A2<>"",$C2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$C2),PLAN!$V:$V),"")');
+  sheet.getRange('P2').setFormula('=IF(N2=0,"",O2/N2)');
+  sheet.getRange('Q2').setFormula('=IF(AND(A2<>"",B2<>""),SUMIFS(TRANSACTIONS!$L:$L,TRANSACTIONS!$A:$A,">="&DATE(A2,B2,1),TRANSACTIONS!$A:$A,"<="&EOMONTH(DATE(A2,B2,1),0)),"")');
+}
+
+function seedFinanceSummary_() {
+  const sheet = sheet_(SHEETS.FIN_SUMMARY, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  const formulas = [
+    '=IF(AND($A2<>"",$B2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$B2),PLAN!$T:$T),"")',
+    '=IF(AND($A2<>"",$B2<>""),SUMIFS(MONTHLY!F:F,MONTHLY!A:A,A2,MONTHLY!C:C,B2),"")',
+    '=IF(AND($A2<>"",$B2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$B2),PLAN!$R:$R),"")',
+    '=IF(AND($A2<>"",$B2<>""),SUMIFS(MONTHLY!I:I,MONTHLY!A:A,A2,MONTHLY!C:C,B2),"")',
+    '=IF(AND($A2<>"",$B2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$B2),PLAN!$P:$P),"")',
+    '=IF(AND($A2<>"",$B2<>""),SUMIFS(MONTHLY!L:L,MONTHLY!A:A,A2,MONTHLY!C:C,B2),"")',
+    '=IF(AND($A2<>"",$B2<>""),XLOOKUP(1,(PLAN!$A:$A=$A2)*(PLAN!$B:$B=$B2),PLAN!$C:$C),"")',
+    '=IF(AND($A2<>"",$B2<>""),SUMIFS(MONTHLY!O:O,MONTHLY!A:A,A2,MONTHLY!C:C,B2),"")',
+    '=IF(A2<>"",SUMIFS(TRANSACTIONS!$L:$L,TRANSACTIONS!$A:$A,">="&DATE(A2,1,1),TRANSACTIONS!$A:$A,"<="&DATE(A2,12,31)),"")'
+  ];
+
+  sheet.getRange(2, 3, 1, formulas.length).setFormulas([formulas]);
+}
+
+function seedFinanceTransactions_() {
+  const sheet = sheet_(SHEETS.FIN_TRANSACTIONS, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  sheet.getRange('D2').setFormula('=IF(C2="","",PARAMS!$B$3)');
+  sheet.getRange('E2').setValue('Çift');
+
+  const formulas = [
+    '=IF(C2="","",IF(PARAMS!$B$5,C2*D2*IF(OR(E2="Çift",E2=""),2,1)/(1+PARAMS!$B$4),C2*D2*IF(OR(E2="Çift",E2=""),2,1)))',
+    '=IF(F2="","",F2*PARAMS!$B$4)',
+    '=IF(F2="","",F2+G2)',
+    '=IF(OR(E2="Alıcı",E2="Çift",E2=""),IF(PARAMS!$B$5,C2*D2/(1+PARAMS!$B$4),C2*D2),0)',
+    '=IF(I2="","",I2*PARAMS!$B$4)',
+    '=IF(I2="","",I2+J2)',
+    '=IF(H2="","",H2+K2)',
+    '=IF(L2="","",L2*PARAMS!$B$1)',
+    '=IF(L2="","",L2*PARAMS!$B$2)',
+    '=IF(L2="","",L2-(M2+N2))',
+    '=IF(M2="","",M2*PARAMS!$B$6)',
+    '=IF(N2="","",N2*PARAMS!$B$6)',
+    '=IF(O2="","",O2*PARAMS!$B$6)',
+    '=IF(M2="","",M2-P2)',
+    '=IF(N2="","",N2-Q2)',
+    '=IF(O2="","",O2-R2)'
+  ];
+
+  sheet.getRange(2, 6, 1, formulas.length).setFormulas([formulas]);
+}
+
+function seedFinanceTax_() {
+  const sheet = sheet_(SHEETS.FIN_TAX, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  const rows = [
+    ['annual_net_income', '', 'Danışman net geliri (yıllık)'],
+    ['annual_income_tax', '', 'Gelir vergisi (yıllık)'],
+    ['monthly_tax_accrual', '', 'Aylık vergi karşılığı']
+  ];
+
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  sheet.getRange(2, 2).setFormula('=SUM(TRANSACTIONS!O:O)');
+  sheet.getRange(3, 2).setFormula('=IFS(B2<=PARAMS!$B$9,B2*0.15,B2<=PARAMS!$B$10,PARAMS!$B$13+(B2-PARAMS!$B$9)*0.20,B2<=PARAMS!$B$11,PARAMS!$B$14+(B2-PARAMS!$B$10)*0.27,B2<=PARAMS!$B$12,PARAMS!$B$15+(B2-PARAMS!$B$11)*0.35,TRUE,PARAMS!$B$16+(B2-PARAMS!$B$12)*0.40)');
+  sheet.getRange(4, 2).setFormula('=IF(B3="","",B3/12)');
+}
+
+function seedFinanceFxRates_() {
+  const sheet = sheet_(SHEETS.FIN_FX_RATES, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  const rows = [
+    ['USDTRY', '', '', 'USD/TRY açılış-kapanış'],
+    ['EURTRY', '', '', 'EUR/TRY açılış-kapanış'],
+    ['GBPTRY', '', '', 'GBP/TRY açılış-kapanış'],
+    ['EURUSD', '', '', 'EUR/USD açılış-kapanış'],
+    ['JPYTRY', '', '', 'JPY/TRY açılış-kapanış'],
+    ['CHFTRY', '', '', 'CHF/TRY açılış-kapanış'],
+    ['RUBTRY', '', '', 'RUB/TRY açılış-kapanış'],
+    ['CNYTRY', '', '', 'CNY/TRY açılış-kapanış']
+  ];
+
+  sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowIndex = i + 2;
+    const pair = rows[i][0];
+    sheet.getRange(rowIndex, 2).setFormula('=IFERROR(INDEX(GOOGLEFINANCE("CURRENCY:' + pair + '","open",TODAY()),2,2),"")');
+    sheet.getRange(rowIndex, 3).setFormula('=IFERROR(INDEX(GOOGLEFINANCE("CURRENCY:' + pair + '","price",TODAY()-1),2,2),"")');
+  }
+}
+
+function seedFinanceFxHistory_() {
+  const sheet = sheet_(SHEETS.FIN_FX_HISTORY, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  sheet.getRange(2, 1).setFormula('=GOOGLEFINANCE("CURRENCY:USDTRY","price",TODAY()-365,TODAY(),"DAILY")');
+  sheet.getRange(2, 3).setFormula('=ARRAYFORMULA(IF(A2:A="",,VLOOKUP(A2:A,GOOGLEFINANCE("CURRENCY:EURTRY","price",TODAY()-365,TODAY(),"DAILY"),2,false)))');
+  sheet.getRange(2, 4).setFormula('=ARRAYFORMULA(IF(A2:A="",,VLOOKUP(A2:A,GOOGLEFINANCE("CURRENCY:GBPTRY","price",TODAY()-365,TODAY(),"DAILY"),2,false)))');
+  sheet.getRange(2, 5).setFormula('=ARRAYFORMULA(IF(A2:A="",,VLOOKUP(A2:A,GOOGLEFINANCE("CURRENCY:JPYTRY","price",TODAY()-365,TODAY(),"DAILY"),2,false)))');
+  sheet.getRange(2, 6).setFormula('=ARRAYFORMULA(IF(A2:A="",,VLOOKUP(A2:A,GOOGLEFINANCE("CURRENCY:CHFTRY","price",TODAY()-365,TODAY(),"DAILY"),2,false)))');
+  sheet.getRange(2, 7).setFormula('=ARRAYFORMULA(IF(A2:A="",,VLOOKUP(A2:A,GOOGLEFINANCE("CURRENCY:RUBTRY","price",TODAY()-365,TODAY(),"DAILY"),2,false)))');
+  sheet.getRange(2, 8).setFormula('=ARRAYFORMULA(IF(A2:A="",,VLOOKUP(A2:A,GOOGLEFINANCE("CURRENCY:CNYTRY","price",TODAY()-365,TODAY(),"DAILY"),2,false)))');
+}
+
+function seedFinanceDueRealLoss_() {
+  const sheet = sheet_(SHEETS.FIN_DUE_REALLOSS, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  sheet.getRange('E2').setValue('USDTRY');
+
+  sheet.getRange('A2').setFormula('=IF(TRANSACTIONS!A2="","",ROW()-1)');
+  sheet.getRange('B2').setFormula('=IF(TRANSACTIONS!A2="","",TRANSACTIONS!A2)');
+  sheet.getRange('C2').setFormula('=IF(TRANSACTIONS!B2="","",TRANSACTIONS!B2)');
+  sheet.getRange('D2').setFormula('=IF(TRANSACTIONS!O2="","",TRANSACTIONS!O2)');
+  sheet.getRange('F2').setFormula('=IF(E2="","",SWITCH(E2,"USDTRY",XLOOKUP(B2,FX_HISTORY!$A:$A,FX_HISTORY!$B:$B),"EURTRY",XLOOKUP(B2,FX_HISTORY!$A:$A,FX_HISTORY!$C:$C),"GBPTRY",XLOOKUP(B2,FX_HISTORY!$A:$A,FX_HISTORY!$D:$D),"JPYTRY",XLOOKUP(B2,FX_HISTORY!$A:$A,FX_HISTORY!$E:$E),"CHFTRY",XLOOKUP(B2,FX_HISTORY!$A:$A,FX_HISTORY!$F:$F),"RUBTRY",XLOOKUP(B2,FX_HISTORY!$A:$A,FX_HISTORY!$G:$G),"CNYTRY",XLOOKUP(B2,FX_HISTORY!$A:$A,FX_HISTORY!$H:$H),""))');
+  sheet.getRange('G2').setFormula('=IF(E2="","",SWITCH(E2,"USDTRY",XLOOKUP(C2,FX_HISTORY!$A:$A,FX_HISTORY!$B:$B),"EURTRY",XLOOKUP(C2,FX_HISTORY!$A:$A,FX_HISTORY!$C:$C),"GBPTRY",XLOOKUP(C2,FX_HISTORY!$A:$A,FX_HISTORY!$D:$D),"JPYTRY",XLOOKUP(C2,FX_HISTORY!$A:$A,FX_HISTORY!$E:$E),"CHFTRY",XLOOKUP(C2,FX_HISTORY!$A:$A,FX_HISTORY!$F:$F),"RUBTRY",XLOOKUP(C2,FX_HISTORY!$A:$A,FX_HISTORY!$G:$G),"CNYTRY",XLOOKUP(C2,FX_HISTORY!$A:$A,FX_HISTORY!$H:$H),""))');
+  sheet.getRange('H2').setFormula('=IF(F2="","",D2/F2)');
+  sheet.getRange('I2').setFormula('=IF(AND(H2<>"",G2<>""),H2*G2,"")');
+  sheet.getRange('J2').setFormula('=IF(I2="","",I2-D2)');
+}
+
+function seedFinanceExpenses_() {
+  const sheet = sheet_(SHEETS.FIN_EXPENSES, false);
+  if (!sheet || sheet.getLastRow() > 1) return;
+
+  const rows = [
+    [new Date(), 'Reklam', '', 'Örnek gider satırı'],
+    [new Date(), 'Yaşam', '', 'Örnek gider satırı']
+  ];
+
   sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
 }
 
